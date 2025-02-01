@@ -6,7 +6,24 @@
     <title>Layered</title>
   </head>
   <body>
-    <div id="app"></div>
+    <root id="app" class="initial banner">
+      <nav>
+        <svg viewbox="0 0 100 100" id="logo"><!-- logo --></svg>
+        <div id="lang-sel">
+          <button id="lang-zh">中</button>
+          <span>/</span>
+          <button id="lang-en">EN</button>
+        </div>
+        <h1 id="brand">
+          <span>分层</span>
+        </h1>
+        <ul id="nav">
+          <a href="/about">关于</a>
+          <a href="/contact">标签</a>
+          <a href="/search">搜索</a>
+        </ul>
+      </nav>
+    </root>
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.tsx"></script>
   </body>

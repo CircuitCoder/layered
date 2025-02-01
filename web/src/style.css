@@ -1,13 +1,11 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-
-  color-scheme: light dark;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Typed custom properties */
+@property --startup-offset {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0;
 }
+
+/* Resets */
 
 * {
   box-sizing: inherit;
@@ -17,4 +15,245 @@ body {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+}
+
+button {
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  outline: none;
+  font-size: inherit;
+  color: inherit;
+  line-height: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* Root */
+
+:root {
+
+  font-family: "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
+  color-scheme: light dark;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --color-bg: white;
+}
+
+/* Logo */
+#logo {
+  --gap: 0px;
+  /* TODO: move to trigger */
+  --distance: 20px;
+  --shadow: 0;
+  opacity: 0;
+  
+  --shard-lightness-1: 0.9;
+  --shard-lightness-2: 0.7;
+  --shard-lightness-3: 0.4;
+}
+
+#logo-shards {
+  & > .logo-shards-container {
+    filter: drop-shadow(0 var(--shadow) calc(var(--shadow) * 1.5) rgba(0, 0, 0, 0.3));
+    transition: filter .2s ease, transform .2s ease;
+    & > use {
+      transition: fill .2s ease-out;
+    }
+  }
+
+  & > .logo-shards-container:nth-last-child(1) {
+    & > use {
+      fill: oklab(var(--shard-lightness-1) 0 0);
+    }
+  }
+
+  & > .logo-shards-container:nth-last-child(2) {
+    & > use {
+      /*
+      // f(x) = ax^2 + bx + c
+      // f'(0.5d) = ad + b = 1
+      // f'(1.5d) = 3ad + b = 0
+      // a = -1/2d, b = 2
+      // f(1.5d) = -9/8d + 3d + c = d => c = -7/8d
+      */
+      /*
+      --regulated-offset: clamp(0px,
+        calc(var(--startup-offset) / 1.5 + 2 * var(--distance)),
+        calc(var(--distance) * 1.5)
+      );
+      transform: translateX(
+        max(
+          calc(
+            -0.5 * (var(--regulated-offset) / var(--distance)) * var(--regulated-offset)
+            + 2 * var(--regulated-offset)
+            - 7 / 8 * var(--distance)
+          )
+        )
+      );
+      */
+
+      transform: translateX(clamp(
+        0px,
+        calc(2 * var(--distance) + var(--startup-offset) / 1.5),
+        var(--distance)
+      ));
+      fill: oklab(var(--shard-lightness-2) 0 0);
+    }
+  }
+
+  & > .logo-shards-container:nth-last-child(3) {
+    & > use {
+      transform: translateX(max(
+        calc(2 * var(--distance) + var(--startup-offset) / 1.5),
+        0px
+      ));
+      fill: oklab(var(--shard-lightness-3) 0 0);
+    }
+  }
+}
+
+#logo-mask > g {
+  transition: transform .2s ease;
+  transform: translateX(calc(var(--gap) - var(--distance)));
+}
+
+body {
+  height: 200vh;
+}
+
+#logo {
+  position: absolute;
+  left: 20px;
+  top: 30px;
+  transform-origin: 20px 0;
+  transform: scale(1.5);
+}
+
+root.initial {
+  transition: --startup-offset .8s cubic-bezier(0, 0, 0, 1);
+  transition-delay: .2s;
+  --startup-offset: -200px;
+  & #logo {
+    transition: opacity .2s ease-out;
+    .logo-shards-container {
+      transition-property: filter;
+      transition-timing-function: ease-out;
+      transition-duration: .2s;
+      transition-delay: 0s;
+      &:not(:nth-last-child(1)) {
+        transition-delay: .4s;
+        transform: scale(.999);
+      }
+    }
+  }
+
+  & #lang-sel, & #nav {
+    transition: opacity .3s ease-out;
+    opacity: 0;
+    transition-delay: .7s;
+  }
+}
+
+#lang-sel {
+  position: absolute;
+  left: 200px;
+  top: 55px;
+  font-size: 12px;
+  line-height: 20px;
+  user-select: none;
+  color: black;
+  display: flex;
+  align-items: center;
+
+  & > button {
+    display: inline-block;
+    opacity: .3;
+    transition: opacity .2s ease;
+
+    &.active, &:hover {
+      opacity: 1;
+    }
+  }
+
+  & > span {
+    display: inline-block;
+    margin: 0 10px;
+    opacity: .18;
+    font-size: 6px;
+    line-height: 20px;
+  }
+}
+
+#brand {
+  font-family: "Source Serif Pro", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
+  font-weight: 900;
+  font-size: 48px;
+  position: absolute;
+  left: 200px;
+  top: 80px;
+  margin: 0;
+  line-height: 56px;
+  z-index: -1;
+  clip-path: inset(0 0 0 -100px);
+
+  & > span {
+    transform: translateX(var(--startup-offset));
+    display: inline-block;
+  }
+}
+
+#nav {
+  padding: 0;
+  position: absolute;
+  left: 200px;
+  top: 130px;
+  margin: 0;
+  line-height: 36px;
+  z-index: 1;
+
+  & a {
+    color: black;
+    line-height: 20px;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+
+    &::before {
+      content: ">";
+      font-size: 10px;
+      font-family: monospace;
+      margin-right: 5px;
+    }
+  }
+}
+
+/* States */
+
+root.banner {
+  --startup-offset: 0;
+
+  & #lang-sel, & #nav {
+    opacity: 1;
+  }
+
+  #logo {
+    --gap: 0px;
+    --distance: 20px;
+    --shadow: 2px;
+    
+    --shard-lightness-1: 0.9;
+    --shard-lightness-2: 0.7;
+    --shard-lightness-3: 0.4;
+    opacity: 1;
+  }
 }
