@@ -1,28 +1,28 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use structopt::StructOpt;
+use clap::Parser;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     /// Path to post directory
-    #[structopt(short, long)]
+    #[arg(short, long)]
     posts: PathBuf,
 
     /// Path to font file used for title outlining
-    #[structopt(short, long)]
+    #[arg(short, long)]
     title_font: PathBuf,
 
     /// Output path
-    #[structopt(short, long, default_value="out")]
+    #[arg(short, long, default_value="out")]
     output: PathBuf,
 
     /// Output suffix (to deal with webpack json loading)
-    #[structopt(short, long, default_value=".json")]
+    #[arg(short, long, default_value=".json")]
     suffix: String,
 }
 
-#[paw::main]
-fn main(args: Args) -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
     env_logger::init();
 
     log::info!("Loading font from {}", args.title_font.display());

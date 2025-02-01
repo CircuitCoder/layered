@@ -1,28 +1,28 @@
 use std::{fs::File, io::Read, path::PathBuf};
 
-use structopt::StructOpt;
+use clap::Parser;
 use ttf_parser::Tag;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 struct Args {
     /// Path to font file
-    #[structopt(short, long)]
+    #[arg(short, long)]
     font: PathBuf,
 
     /// Variable wght
-    #[structopt(short, long)]
+    #[arg(short, long)]
     wght: Option<f32>,
 }
 
-#[paw::main]
-fn main(args: Args) -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
+    let args = Args::parse();
     env_logger::init();
 
     log::info!("Loading font from {}", args.font.display());
     let mut font_file = File::open(args.font)?;
     let mut font_buf = Vec::new();
     font_file.read_to_end(&mut font_buf)?;
-    let mut font: ttf_parser::Face = ttf_parser::Face::from_slice(font_buf.as_slice(), 0)?;
+    let mut font: ttf_parser::Face = ttf_parser::Face::parse(font_buf.as_slice(), 0)?;
 
     for axis in font.variation_axes() {
         log::debug!("{:#?}", axis);
