@@ -2,15 +2,17 @@ use std::{collections::HashMap, os::unix::prelude::OsStrExt, path::Path};
 
 use chrono::TimeZone;
 use git2::Sort;
-use pointwise_common::font::TitleResp;
 use regex::Regex;
 use serde::Serialize;
 
-use crate::post::md::ParsedMarkdown;
+use crate::{font::TitleResp, post::md::ParsedMarkdown};
 
 mod md;
 
 #[derive(Debug, Serialize)]
+#[derive(ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "lowercase")]
 pub struct Post {
     pub metadata: Metadata,
     pub html: String,
@@ -19,11 +21,15 @@ pub struct Post {
 type DT = chrono::DateTime<chrono::FixedOffset>;
 
 #[derive(Debug, Serialize)]
+#[derive(ts_rs::TS)]
+#[serde(rename_all = "lowercase")]
 pub struct Metadata {
     pub id: String,
     pub title: String,
     pub tags: Vec<String>,
+    #[ts(type = "string")]
     pub publish_time: DT,
+    #[ts(as = "Option<String>")]
     pub update_time: Option<DT>,
     pub title_outline: TitleResp,
 }

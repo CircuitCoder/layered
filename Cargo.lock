@@ -243,6 +243,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "gen"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "env_logger",
+ "git2",
+ "log",
+ "lyon_algorithms",
+ "lyon_path",
+ "pulldown-cmark",
+ "regex",
+ "serde",
+ "serde_json",
+ "ts-rs",
+ "ttf-parser",
+]
+
+[[package]]
 name = "getopts"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -623,34 +643,6 @@ name = "pkg-config"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "953ec861398dccce10c670dfeaf3ec4911ca479e9c02154b3a215178c5f566f2"
-
-[[package]]
-name = "pointwise-common"
-version = "0.1.0"
-dependencies = [
- "serde",
- "ts-rs",
-]
-
-[[package]]
-name = "pointwise-gen"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "env_logger",
- "git2",
- "log",
- "lyon_algorithms",
- "lyon_path",
- "pointwise-common",
- "pulldown-cmark",
- "regex",
- "serde",
- "serde_json",
- "ttf-parser",
-]
 
 [[package]]
 name = "proc-macro2"
