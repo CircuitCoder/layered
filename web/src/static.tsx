@@ -2,6 +2,8 @@
  * Pure static HTML contents
  */
 
+import * as CONFIG from "./config";
+
 import {
   init,
   classModule,
@@ -20,7 +22,7 @@ const patch = init([
 
 const SQRT3 = Math.sqrt(3);
 const CORNER_RADIUS = 10;
-const logo = <svg attrs={{id: "logo", viewbox: "0 0 200 100"}}>
+const logo = <svg attrs={{id: "logo", viewbox: "0 0 160 100"}}>
   <defs>
     <path attrs={{
       id: "logo-shard",
@@ -47,17 +49,19 @@ const logo = <svg attrs={{id: "logo", viewbox: "0 0 200 100"}}>
       </g>
     </mask>
   </defs>
-  <g attrs={{id: "logo-shards"}}>
-    <g class={{ "logo-shards-container": true }}>
-      <use attrs={{ href: "#logo-shard", mask: "url(#logo-mask)" }}></use>
+  <a attrs={{href: "/"}}>
+    <g attrs={{id: "logo-shards"}}>
+      <g class={{ "logo-shards-container": true }}>
+        <use attrs={{ href: "#logo-shard", mask: "url(#logo-mask)" }}></use>
+      </g>
+      <g class={{ "logo-shards-container": true }}>
+        <use attrs={{ href: "#logo-shard", mask: "url(#logo-mask)" }}></use>
+      </g>
+      <g class={{ "logo-shards-container": true }}>
+        <use attrs={{ href: "#logo-shard" }}></use>
+      </g>
     </g>
-    <g class={{ "logo-shards-container": true }}>
-      <use attrs={{ href: "#logo-shard", mask: "url(#logo-mask)" }}></use>
-    </g>
-    <g class={{ "logo-shards-container": true }}>
-      <use attrs={{ href: "#logo-shard" }}></use>
-    </g>
-  </g>
+  </a>
 </svg>
 
 export function apply() {

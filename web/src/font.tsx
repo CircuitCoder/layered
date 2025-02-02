@@ -1,6 +1,6 @@
 import { TitleResp } from "./typings/TitleResp";
 
-export function renderLine(line: TitleResp): SVGSVGElement {
+export function renderLine(line: TitleResp): [SVGSVGElement, number] {
   // FIXME: wrap
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const root = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -48,5 +48,5 @@ export function renderLine(line: TitleResp): SVGSVGElement {
   }
 
   svg.appendChild(root);
-  return svg;
+  return [svg, xdiff];
 }
