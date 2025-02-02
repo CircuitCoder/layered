@@ -1,6 +1,7 @@
 # TODO
 
 - [ ] Basic list rendering, post rendering, history API
+- [ ] Dark mode
 - [ ] Comment section
 - [ ] Tag
 - [ ] Search

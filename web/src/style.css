@@ -1,4 +1,5 @@
 /* Typed custom properties */
+
 @property --startup-offset {
   syntax: '<length>';
   inherits: true;
@@ -15,6 +16,7 @@ body {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
+  padding-top: 200px;
 }
 
 button {
@@ -31,6 +33,7 @@ button {
 
 a {
   text-decoration: none;
+  border-bottom: 1px dashed rgba(0,0,0,.3);
 }
 
 /* Root */
@@ -49,24 +52,11 @@ a {
 }
 
 /* Logo */
-#logo {
-  --gap: 0px;
-  /* TODO: move to trigger */
-  --distance: 20px;
-  --shadow: 0;
-  opacity: 0;
-  
-  --shard-lightness-1: 0.9;
-  --shard-lightness-2: 0.7;
-  --shard-lightness-3: 0.4;
-}
-
 #logo-shards {
   & > .logo-shards-container {
     filter: drop-shadow(0 var(--shadow) calc(var(--shadow) * 1.5) rgba(0, 0, 0, 0.3));
-    transition: filter .2s ease, transform .2s ease;
     & > use {
-      transition: fill .2s ease-out;
+      transition: fill .2s ease, transform .2s ease;
     }
   }
 
@@ -126,47 +116,22 @@ a {
   transform: translateX(calc(var(--gap) - var(--distance)));
 }
 
-body {
-  height: 200vh;
-}
-
 #logo {
-  position: absolute;
+  position: fixed;
   left: 20px;
   top: 30px;
   transform-origin: 20px 0;
   transform: scale(1.5);
-}
-
-root.initial {
-  transition: --startup-offset .8s cubic-bezier(0, 0, 0, 1);
-  transition-delay: .2s;
-  --startup-offset: -200px;
-  & #logo {
-    transition: opacity .2s ease-out;
-    .logo-shards-container {
-      transition-property: filter;
-      transition-timing-function: ease-out;
-      transition-duration: .2s;
-      transition-delay: 0s;
-      &:not(:nth-last-child(1)) {
-        transition-delay: .4s;
-        transform: scale(.999);
-      }
-    }
-  }
-
-  & #lang-sel, & #nav {
-    transition: opacity .3s ease-out;
-    opacity: 0;
-    transition-delay: .7s;
-  }
+  transition: transform .2s ease;
 }
 
 #lang-sel {
-  position: absolute;
-  left: 200px;
-  top: 55px;
+  position: fixed;
+  top: 35px;
+  left: 110px;
+
+  transition: transform .2s ease;
+
   font-size: 12px;
   line-height: 20px;
   user-select: none;
@@ -186,7 +151,7 @@ root.initial {
 
   & > span {
     display: inline-block;
-    margin: 0 10px;
+    margin: 0 5px;
     opacity: .18;
     font-size: 6px;
     line-height: 20px;
@@ -197,9 +162,12 @@ root.initial {
   font-family: "Source Serif Pro", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
   font-weight: 900;
   font-size: 48px;
-  position: absolute;
+  position: fixed;
   left: 200px;
   top: 80px;
+
+  transition: transform .1s ease, opacity .1s ease;
+
   margin: 0;
   line-height: 56px;
   z-index: -1;
@@ -213,9 +181,14 @@ root.initial {
 
 #nav {
   padding: 0;
-  position: absolute;
-  left: 200px;
-  top: 130px;
+  position: fixed;
+  left: 40px;
+  top: 80px;
+  transform: scale(.75);
+  transform-origin: 0 0;
+
+  transition: transform .2s ease;
+
   margin: 0;
   line-height: 36px;
   z-index: 1;
@@ -237,16 +210,91 @@ root.initial {
   }
 }
 
+/* List & Title */
+
+#list {
+  margin-left: 200px;
+  transition-property: transform, opacity;
+  transition-timing-function: ease;
+  transition-duration: .2s;
+}
+
+.title {
+  --size: 24;
+  --baseline-y: 60px;
+  width: 100%;
+  height: 70px;
+
+  & .line {
+    transform: translateY(var(--baseline-y)) scale(var(--size))
+  }
+
+  & .glyph {
+    transform: translateX(var(--xdiff));
+
+    & mask path {
+      transform: translate(0.05px, 0.05px);
+    }
+  }
+}
+
 /* States */
+
+root.initial {
+  transition: --startup-offset .8s cubic-bezier(0, 0, 0, 1);
+  transition-delay: .2s;
+  & #logo {
+    transition: opacity .2s ease-out;
+    .logo-shards-container {
+      transition-property: filter;
+      transition-timing-function: ease-out;
+      transition-duration: .2s;
+      transition-delay: 0s;
+      &:not(:nth-last-child(1)) {
+        transition-delay: .4s;
+      }
+
+      > use {
+        transition: fill .2s ease;
+      }
+    }
+  }
+
+  & #lang-sel, & #nav {
+    transition: opacity .3s ease-out, transform .3s ease-out;
+    transition-delay: .7s;
+  }
+
+  & #brand {
+    transition-delay: 0;
+  }
+
+  & #list {
+    transition-timing-function: ease-out;
+    transition-duration: .3s;
+    transition-delay: .7s;
+  }
+}
+
 
 root.banner {
   --startup-offset: 0;
 
-  & #lang-sel, & #nav {
+  & #lang-sel {
     opacity: 1;
+    transform: translate(90px, 20px);
   }
 
-  #logo {
+  & #nav {
+    opacity: 1;
+    transform: translate(160px, 50px);
+  }
+
+  & #brand {
+    transition-delay: .1s, .1s;
+  }
+
+  & #logo {
     --gap: 0px;
     --distance: 20px;
     --shadow: 2px;
@@ -255,5 +303,61 @@ root.banner {
     --shard-lightness-2: 0.7;
     --shard-lightness-3: 0.4;
     opacity: 1;
+  }
+}
+
+root.banner-trigger {
+  --startup-offset: -200px;
+
+  #logo {
+    --gap: 0px;
+    --distance: 20px;
+    --shadow: 0;
+    opacity: 0;
+  }
+
+  & #lang-sel {
+    transform: translateY(5px) translate(90px, 20px);
+    opacity: 0;
+  }
+
+  & #nav {
+    transform: translateY(-5px) translate(160px, 50px);
+    opacity: 0;
+  }
+
+  & #list {
+    transform: translateY(-5px);
+    opacity: 0;
+  }
+}
+
+root.header {
+  --startup-offset: 0;
+
+  & #lang-sel {
+    opacity: 1;
+  }
+
+  & #nav {
+    opacity: 1;
+  }
+
+  & #brand {
+    transform: scale(.9) translate(-20px, -10px);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #logo {
+    --gap: 10px;
+    --distance: 30px;
+    --shadow: 0;
+    
+    --shard-lightness-1: 0.4;
+    --shard-lightness-2: 0.4;
+    --shard-lightness-3: 0.4;
+    opacity: 1;
+    transform: scale(.5);
   }
 }

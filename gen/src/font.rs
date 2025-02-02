@@ -10,6 +10,7 @@ use serde::Serialize;
 #[derive(ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
+#[serde(tag = "ty", content = "spec")] 
 pub enum OutlineCmd {
     Move(f64, f64),
     Line(f64, f64),
@@ -49,6 +50,29 @@ impl OutlineCmd {
             OutlineCmd::Close => OutlineCmd::Close,
         }
     }
+
+    pub fn dst_pt(&self) -> Option<(f64, f64)> {
+        match self {
+            OutlineCmd::Move(x, y) => Some((*x, *y)),
+            OutlineCmd::Line(x, y) => Some((*x, *y)),
+            OutlineCmd::Quad { to, .. } => Some(*to),
+            OutlineCmd::Cubic { to, .. } => Some(*to),
+            OutlineCmd::Close => None,
+        }
+    }
+
+    pub fn is_outside(&self, path: impl Iterator<Item = PathEvent>) -> bool {
+        match self.dst_pt() {
+            None => false,
+            // TODO: change tolerance
+            Some((x, y)) => lyon_algorithms::hit_test::hit_test_path(
+                &(x as f32, y as f32).into(),
+                path,
+                lyon_path::FillRule::EvenOdd,
+                1e-2,
+            )
+        }
+    }
 }
 
 pub type Outline = Vec<OutlineCmd>;
@@ -73,16 +97,55 @@ impl BBox {
     }
 }
 
+fn serialize_outline(outline: &Outline, em: f64) -> String {
+    let mut ret = String::new();
+    for cmd in outline {
+        match cmd {
+            OutlineCmd::Move(x, y) => {
+                ret.push_str(&format!("M {} {}", x / em, - y / em));
+            }
+            OutlineCmd::Line(x, y) => {
+                ret.push_str(&format!("L {} {}", x / em, - y / em));
+            }
+            OutlineCmd::Quad { to, ctrl } => {
+                ret.push_str(&format!(
+                    "Q {} {} {} {}",
+                    ctrl.0 / em, - ctrl.1 / em, to.0 / em, - to.1 / em
+                ));
+            }
+            OutlineCmd::Cubic {
+                to,
+                ctrl_first,
+                ctrl_second,
+            } => {
+                ret.push_str(&format!(
+                    "C {} {} {} {} {} {}",
+                    ctrl_first.0 / em,
+                    - ctrl_first.1 / em,
+                    ctrl_second.0 / em,
+                    - ctrl_second.1 / em,
+                    to.0 / em,
+                    - to.1 / em
+                ));
+            }
+            OutlineCmd::Close => {
+                ret.push_str("Z");
+            }
+        }
+    }
+    ret
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[derive(ts_rs::TS)]
 #[ts(export)]
 pub struct CharResp {
     #[ts(type = "string")]
     pub char: char,
-    pub components: Vec<Vec<OutlineCmd>>,
+    pub components: Vec<String>,
     pub bbox: BBox,
-    pub bearing: i16,
-    pub hadv: u16,
+    // pub bearing: i16,
+    pub hadv: f64,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -90,11 +153,12 @@ pub struct CharResp {
 #[ts(export)]
 pub struct TitleResp {
     pub chars: Vec<CharResp>,
-    pub asc: i16,
-    pub des: i16,
-    pub em: u16,
+    pub asc: f64,
+    pub des: f64,
+    // pub em: u16,
 }
 
+// TODO: optimize: use slices
 fn split_closed_loop<I: Iterator<Item = OutlineCmd>>(outline: I) -> Vec<Outline> {
     let mut output = Vec::new();
     let mut cur = Vec::new();
@@ -106,6 +170,10 @@ fn split_closed_loop<I: Iterator<Item = OutlineCmd>>(outline: I) -> Vec<Outline>
             output.push(cur);
             cur = Vec::new();
         }
+    }
+
+    if !cur.is_empty() {
+        output.push(cur);
     }
 
     output
@@ -199,18 +267,10 @@ pub fn split_components(input: Outline) -> Vec<Outline> {
             }
             log::debug!("Testing {} contained in {}", i, j);
 
-            let i_first_point = match loops[i].get(0).unwrap() {
-                OutlineCmd::Move(x, y) => (*x as f32, *y as f32),
-                _ => unreachable!(),
-            };
-            let j_path = component_to_lyon_path_ev(loops[j].iter().cloned());
             // TODO: change tolerance?
-            let i_inside_j = lyon_algorithms::hit_test::hit_test_path(
-                &i_first_point.into(),
-                j_path,
-                lyon_path::FillRule::EvenOdd,
-                1e-1,
-            );
+            let i_inside_j = loops[i]
+                .iter()
+                .all(|cmd| !cmd.is_outside(component_to_lyon_path_ev(loops[j].iter().cloned())));
             if i_inside_j {
                 inside[i].insert(j);
             }
@@ -295,7 +355,7 @@ impl ttf_parser::OutlineBuilder for OutlineBuilder {
     }
 }
 
-pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
+pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
     let glyph = match face.glyph_index(c) {
         Some(gid) => gid,
         None => {
@@ -322,33 +382,40 @@ pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> 
 
     let hadv = face.glyph_hor_advance(glyph).ok_or_else(|| anyhow::anyhow!("Glyph '{}' has no outline and hor adv", c))?;
 
-    let components = split_components(builder.outline);
+    let mut components = split_components(builder.outline);
+    components.sort_by(|a, b| {
+        let a_bbox = lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(a.iter().cloned()));
+        let b_bbox = lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(b.iter().cloned()));
+        return a_bbox.min.x.partial_cmp(&b_bbox.min.x).unwrap();
+    });
+    let components_serialized = components.iter().map(|c| serialize_outline(c, em)).collect();
     let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
     let r = Ok(CharResp {
-        components,
+        components: components_serialized,
         char: c,
         bbox: BBox {
-            top: bbox.y_min as f64,
-            bottom: bbox.y_max as f64,
-            left: bbox.x_min as f64,
-            right: bbox.x_max as f64,
+            top: -bbox.y_max as f64 / em,
+            bottom: -bbox.y_min as f64 / em,
+            left: bbox.x_min as f64 / em,
+            right: bbox.x_max as f64 / em,
         },
-        bearing,
-        hadv,
+        // bearing,
+        hadv: hadv as f64 / em,
     });
 
     r
 }
 
 pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<TitleResp> {
-    let chars: anyhow::Result<Vec<_>> = title.chars().map(|c| parse_char(c, face)).collect();
+    let em = face.units_per_em();
+    let chars: anyhow::Result<Vec<_>> = title.chars().map(|c| parse_char(c, em as f64, face)).collect();
     let chars = chars?;
 
     Ok(TitleResp {
         chars,
-        em: face.units_per_em(),
-        asc: face.ascender(),
-        des: face.descender(),
+        // em: face.units_per_em(),
+        asc: face.ascender() as f64 / em as f64,
+        des: face.descender() as f64 / em as f64,
     })
 }

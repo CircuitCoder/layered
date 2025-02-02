@@ -4,6 +4,8 @@ import { apply as applyStatic } from "./static";
 
 import { Post } from "./typings/Post";
 import dataUnty from "../../data.json";
+import { wait, nextTick } from "./utils";
+import { renderLine } from "./font";
 const data = dataUnty as Post[];
 
 /**
@@ -16,6 +18,9 @@ type State = {
 } | {
   ty: 'Post',
   slug: string,
+} | {
+  ty: 'Tag',
+  tag: string,
 } | {
   ty: 'About',
 } | {
@@ -31,13 +36,41 @@ function bootstrap() {
 
   // Bootstrap init animation
   reflection(document.location.pathname);
+
+  // TODO(routing): register popstate event
+
+  window.addEventListener('scroll', scroll);
 }
 
 /**
  * Animation
  */
-function transition(oldState: State, newState: State) {
-  // Do nothing now
+async function transition(oldState: State, newState: State) {
+  if(oldState.ty === 'Vacant') {
+    // Trigger startup animation
+    const cn = newState.ty === 'Home' ? 'banner' : 'header';
+    const root = document.getElementById('root')!;
+    root.classList.add(`initial`);
+    root.classList.add(`${cn}-trigger`);
+    root.classList.add(`${cn}`);
+    root.style.display = '';
+    root.getBoundingClientRect(); // Force re-render
+    await nextTick();
+    root.classList.remove(`${cn}-trigger`);
+    await wait(1100);
+    root.classList.remove(`initial`);
+  }
+}
+
+function scroll() {
+  const root = document.getElementById('root')!;
+  if(window.scrollY <= 20 && state.ty === 'Home') {
+    root.classList.add('banner');
+    root.classList.remove('header');
+  } else {
+    root.classList.add('header');
+    root.classList.remove('banner');
+  }
 }
 
 /**
@@ -60,6 +93,19 @@ function reflection(path: String) {
   const newState = parsePath(path);
   transition(state, newState);
   state = newState;
+
+  if(state.ty === 'Home')
+    renderList(data);
+}
+
+/**
+ * List rendering
+ */
+
+function renderList(posts: Post[]) {
+  const list = document.getElementById('list')!;
+  const titles = posts.map(p => renderLine(p.metadata.title_outline));
+  list.replaceChildren(...titles);
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

@@ -8,7 +8,6 @@ import {
   propsModule,
   attributesModule,
   styleModule,
-  eventListenersModule,
   jsx
 } from "snabbdom";
 
@@ -17,7 +16,6 @@ const patch = init([
   propsModule,
   attributesModule,
   styleModule,
-  eventListenersModule
 ]);
 
 const SQRT3 = Math.sqrt(3);
@@ -34,7 +32,7 @@ const logo = <svg attrs={{id: "logo", viewbox: "0 0 200 100"}}>
       A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 -${CORNER_RADIUS / 2 * SQRT3} ${50 - CORNER_RADIUS / 2 * 3}
       L -${50 / SQRT3 - CORNER_RADIUS / 2 / SQRT3} ${CORNER_RADIUS / 2}
       A ${CORNER_RADIUS} ${CORNER_RADIUS} 0 0 1 -${50 / SQRT3 - CORNER_RADIUS / 2 / SQRT3} -${CORNER_RADIUS / 2}
-      c
+      z
     `
     }} style={{
       transform: `translate(50px, 50px)`
