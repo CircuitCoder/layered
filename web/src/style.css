@@ -221,11 +221,13 @@ root {
   transition-property: transform, opacity;
   transition-timing-function: ease;
   transition-duration: .2s;
+  transition-delay: .2s;
 
   &.hidden {
     pointer-events: none;
     transform: translateX(-20px);
     opacity: 0;
+    transition-delay: 0s;
   }
 }
 
@@ -261,43 +263,72 @@ root {
   height: 40px;
 }
 
-.entry-title .title .glyph {
-  transition: transform .2s ease;
-  --var-multiplier: 0;
-}
-
-.entry-title:hover .title .glyph {
-  --var-multiplier: .3;
-}
-
 .title {
   /* transform-style: preserve-3d; */
 
   & .line {
-    transform: translateY(var(--baseline-y)) scale(var(--size))
+    transform: translateY(var(--baseline-y))
+  }
+
+  & .var-group {
+    transform-origin: 0 0;
+    transform: scale(var(--size)) translateX(var(--grp-xdiff));
   }
 
   & .glyph {
-    transform:
-      translate(
-        calc(var(--xdiff) + var(--var-multiplier) * var(--var-offset-x) * 1px),
-        calc(var(--var-multiplier) * var(--var-offset-y) * 1px)
-      )
-      scale(calc(var(--var-multiplier) * var(--var-scale) + (1 - var(--var-multiplier))));
+    transform: translateX(var(--in-grp-xdiff));
+  }
+
+  & path {
+    transform-origin: 0 0;
   }
 
   pointer-events: none;
+  overflow: visible;
 }
 
 /* Posts */
 .post-title {
-  --size: 36;
-  --baseline-y: 30px;
+  --size: 48;
+  --baseline-y: 48px;
   position: fixed;
   top: 50vh;
   left: 50vw;
   transform: translate(-50%, -50%);
   height: 60px;
+  width: calc(var(--full-width) * var(--size) * 1px);
+  pointer-events: all;
+
+  & .var-group {
+    transform:
+      translateY(calc(0px - 1px * var(--scroll) * (var(--var-scale) + 1) / 2))
+      scale(var(--size))
+      translateX(var(--grp-xdiff))
+      translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
+      scale(var(--var-scale, 1));
+
+    filter: blur(calc(1px * var(--scroll) * (var(--var-scale) - 0.7) / 500));
+    opacity: calc(1 - var(--scroll) * (var(--var-scale) - 0.5) / 200);
+  }
+}
+
+.post-content-wrapper {
+  margin-left: 200px;
+  padding-top: 80vh;
+  padding: calc(50vh + 200px) 60px 20px 0;
+}
+
+.post-content {
+  max-width: 650px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 28px;
+}
+
+#post.hidden .post-content {
+  transition: transform .2s ease-in, opacity .2s ease-in;
+  transform: translateY(20px);
+  opacity: 0;
 }
 
 /* States */

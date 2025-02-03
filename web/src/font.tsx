@@ -1,9 +1,10 @@
 import { TitleResp } from "./typings/TitleResp";
 import { randomWithin } from "./utils";
 
-function generateVarGroup(): SVGGElement {
+function generateVarGroup(xdiff: number): SVGGElement {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
   g.classList.add('var-group');
+  g.style.setProperty('--grp-xdiff', xdiff.toString() + 'px');
   return g;
 }
 
@@ -15,12 +16,10 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
   svg.classList.add('title');
   root.classList.add('line');
 
-
-  let varScale = randomWithin(0.9, 1.2);
-  let varOffsetX = randomWithin(-0.05, 0.05);
-  let varOffsetY = randomWithin(-0.1, 0.1);
+  let group = null;
 
   let xdiff = 0;
+  let inGrpXdiff = 0;
   for(const chr of line.chars) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -54,25 +53,20 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
       */
     }
     g.classList.add('glyph');
-    g.style.setProperty('--xdiff', xdiff.toString() + 'px');
 
-    const keep = !!chr.char.match(/[a-zA-Z0-9]/);
+    const keep = group !== null && !!chr.char.match(/[a-zA-Z0-9]/);
     if(!keep) {
-      varScale = randomWithin(0.9, 1.2);
-      varOffsetX = randomWithin(-0.05, 0.05);
-      varOffsetY = randomWithin(-0.1, 0.1);
+      if(group) group.style.setProperty('--grp-approx-width', inGrpXdiff.toString());
+      group = generateVarGroup(xdiff);
+      root.appendChild(group);
+      inGrpXdiff = 0;
     }
-    g.style.setProperty('--var-scale', varScale.toString());
-    g.style.setProperty('--var-offset-x', varOffsetX.toString());
-    g.style.setProperty('--var-offset-y', varOffsetY.toString());
+
+    g.style.setProperty('--in-grp-xdiff', inGrpXdiff.toString() + 'px');
+    group!.appendChild(g);
 
     xdiff += chr.hadv;
-    // FIXME: centering
-    if(keep) {
-      varOffsetX += (varScale - 1) * chr.hadv;
-    }
-
-    root.appendChild(g);
+    inGrpXdiff += chr.hadv;
   }
 
   svg.appendChild(root);
