@@ -23,21 +23,36 @@ function evalStyleDef(def: styleDef): string {
   else return Object.keys(def).map(key => `${key}: ${def[key]}`).join('; ');
 }
 
-export function jsx(tag: string, data: JSXData, ...children: (HTMLElement | string)[]): HTMLElement {
-  const el = document.createElement(tag);
-  if(data.class !== undefined) el.className = evalClassDef(data.class);
-  if(data.style !== undefined) el.setAttribute('style', evalStyleDef(data.style));
-  for(const key in data) {
-    if(key === 'class' || key === 'style') continue;
-    el.setAttribute(key, data[key]);
+export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...children: (Element | string)[]) => Element {
+  return (tag, data, ...children) => {
+    const el = ns !== undefined ? document.createElementNS(ns, tag) : document.createElement(tag);
+    if(data.class !== undefined) el.className = evalClassDef(data.class);
+    if(data.style !== undefined) el.setAttribute('style', evalStyleDef(data.style));
+    for(const key in data) {
+      if(key === 'class' || key === 'style') continue;
+      el.setAttribute(key, data[key]);
+    }
+    el.append(...children.filter(e => !!e));
+    return el;
   }
-  el.append(...children);
-  return el;
 }
+
+export const jsx = jsxFactory();
+export const jsxSVG = jsxFactory('http://www.w3.org/2000/svg');
 
 export namespace jsx {
   export namespace JSX {
     export type Element = HTMLElement;
+    export interface IntrinsicElements {
+      // TODO: restrict to HTML elements
+      [elemName: string]: JSXData;
+    }
+  }
+}
+
+export namespace jsxSVG {
+  export namespace JSX {
+    export type Element = SVGElement;
     export interface IntrinsicElements {
       // TODO: restrict to HTML elements
       [elemName: string]: JSXData;

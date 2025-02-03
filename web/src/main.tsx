@@ -1,13 +1,13 @@
 import { apply as applyStatic } from "./static";
 
 import { Post as PostData } from "./typings/Post";
+import { getData } from "./data";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
 import { renderLine } from "./font";
 import { jsx } from "./jsx";
+import * as Icons from "./icons";
 
 import * as CONFIG from "./config";
-import dataUnty from "../../data.json";
-const data = dataUnty as PostData[];
 
 import { Temporal } from "@js-temporal/polyfill";
 
@@ -121,7 +121,7 @@ function parsePath(path: String): State {
     return { ty: 'NotFound' };
 }
 
-function reflection(path: String, activator: EventTarget | null = null) {
+async function reflection(path: String, activator: EventTarget | null = null) {
   // Commit exit animation
   const newState = parsePath(path);
   const oldState = state;
@@ -140,6 +140,11 @@ function reflection(path: String, activator: EventTarget | null = null) {
     rendered = null;
   }
 
+  window.scrollTo(0, 0);
+
+  // All transitions require fetching all data, so we wait on that
+  const data = await getData();
+
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home')
@@ -156,6 +161,14 @@ function reflection(path: String, activator: EventTarget | null = null) {
     }
     rendered = new Post(post, renderedTitle);
   }
+}
+
+function freezeScroll(el: HTMLElement) {
+  const scrollY = window.scrollY;
+  el.style.setProperty('position', 'fixed');
+  el.style.setProperty('top', `-${scrollY}px`);
+  // Override --scroll variable
+  el.style.setProperty('--scroll', `${scrollY}`);
 }
 
 /**
@@ -187,7 +200,7 @@ class List implements RenderedEntity {
     const dispDate = dispTime.toLocaleString(['zh-CN', 'en-US'], {
       dateStyle: 'long',
     });
-    const updated = !!post.metadata.update_time;
+    const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
     const [line, lineWidth] = renderLine(post.metadata.title_outline);
     return <div class="entry">
@@ -197,12 +210,13 @@ class List implements RenderedEntity {
         {line}
         <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>{post.metadata.title}</a>
       </div>
-      <div class="entry-time">{dispDate}</div>
+      <div class="entry-time">{ dispDate }{ updated && Icons.Edit.cloneNode(true) }</div>
     </div>
   }
 
   async exit() {
     const el = this.element;
+    freezeScroll(el);
     return el.animate([{}, {
       transform: 'translateY(20px)',
       opacity: 0,
@@ -253,6 +267,7 @@ class Post implements RenderedEntity {
 
   async exit() {
     const el = this.element;
+    freezeScroll(el);
     const title = el.querySelector('.post-title') as SVGSVGElement;
     const titleRemoved = Post.applyTitleFreeAnimation(title, false);
     const content = el.querySelector('.post-content') as HTMLElement;
@@ -288,9 +303,13 @@ class Post implements RenderedEntity {
         // when considering overarching scaling
         // So we pre-set the target FLIP scale and then ask
         // what's the delta
+
+        // Also, temporarily override scroll
         grp.style.setProperty('--var-scale', '0.5');
+        grp.style.setProperty('--scroll', '0');
         const curLoc = grp.getBoundingClientRect();
         const refLoc = r.getBoundingClientRect();
+        grp.style.removeProperty('--scroll');
         return {
           dx: refLoc.x - curLoc.x,
           dy: refLoc.y - curLoc.y,
@@ -324,7 +343,7 @@ class Post implements RenderedEntity {
           },
           {},
         ], {
-          delay: grpXdiff * 50,
+          delay: i * 50,
           duration: 200,
           easing: 'cubic-bezier(0, 0, 0, 1)',
           fill: 'both',
