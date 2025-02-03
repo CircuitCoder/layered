@@ -1,13 +1,13 @@
-import { apply, apply as applyStatic } from "./static";
+import { apply as applyStatic } from "./static";
 
-import { Post } from "./typings/Post";
+import { Post as PostData } from "./typings/Post";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
 import { renderLine } from "./font";
 import { jsx } from "./jsx";
 
 import * as CONFIG from "./config";
 import dataUnty from "../../data.json";
-const data = dataUnty as Post[];
+const data = dataUnty as PostData[];
 
 import { Temporal } from "@js-temporal/polyfill";
 
@@ -30,7 +30,13 @@ type State = {
   ty: 'NotFound',
 };
 
+interface RenderedEntity {
+  element: HTMLElement,
+  exit(): Promise<void>,
+}
+
 let state: State = { ty: 'Vacant' };
+let rendered: RenderedEntity | null = null;
 
 function bootstrap() {
   applyStatic();
@@ -69,50 +75,34 @@ function bootstrap() {
 /**
  * Animation
  */
-async function exit(oldState: State, cn: string) {
+async function startup(cn: string) {
   const root = document.getElementById('root')!;
 
-  if(oldState.ty === 'Vacant') {
-    // Trigger startup animation
-    root.classList.add(`initial`);
-    root.classList.add(`${cn}-trigger`);
-    root.classList.add(`${cn}`);
-    root.style.display = '';
-    root.getBoundingClientRect(); // Force re-render
-    await nextTick();
-    root.classList.remove(`${cn}-trigger`);
-    await wait(1100);
-    root.classList.remove(`initial`);
-  }
-
-  if(oldState.ty === 'Post') {
-    // Exit post
-    const curTitle = document.querySelector('.post-title:not(.post-title-retiring)') as SVGSVGElement;
-    curTitle.classList.add('post-title-retiring');
-    applyPostTitleFreeAnimation(curTitle, false).then(() => curTitle.remove());
-    await exitPost();
-  }
-
-  if(oldState.ty === 'Home')
-    exitList();
+  root.classList.add(`initial`);
+  root.classList.add(`${cn}-trigger`);
+  root.classList.add(`${cn}`);
+  root.style.display = '';
+  root.getBoundingClientRect(); // Force re-render
+  await nextTick();
+  root.classList.remove(`${cn}-trigger`);
+  await wait(1100);
+  root.classList.remove(`initial`);
 }
 
 function scroll() {
-  updateClass(state);
+  updateBannerClass(state);
 }
 
-function updateClass(state: State): string {
+function updateBannerClass(state: State): string {
   const root = document.getElementById('root')!;
   root.style.setProperty('--scroll', window.scrollY.toString());
-  if(window.scrollY === 0 && state.ty === 'Home') {
-    root.classList.add('banner');
-    root.classList.remove('header');
-    return 'banner';
-  } else {
-    root.classList.add('header');
-    root.classList.remove('banner');
-    return 'header';
-  }
+  const targetClass = window.scrollY === 0 && state.ty === 'Home' ? 'banner' : 'header';
+  if(root.classList.contains(targetClass)) return targetClass;
+
+  // Also remove initial. All banner state changes during initial immediately halts the startup animation
+  root.classList.remove('banner', 'header', 'initial');
+  root.classList.add(targetClass);
+  return targetClass;
 }
 
 /**
@@ -140,13 +130,20 @@ function reflection(path: String, activator: EventTarget | null = null) {
 
   // TODO: Verify existence, or instead use 404
 
-  const cn = updateClass(newState);
-  exit(oldState, cn);
+  // TODO: delay startup animiation class detection after content is rendered, s.t. scroll is correctly reflected
+  // Or give a min-height 101vh during startup to see if the stored scroll is not a top
+  const cn = updateBannerClass(newState);
+  if(oldState.ty === 'Vacant') startup(cn);
+
+  if(rendered !== null) {
+    rendered.exit();
+    rendered = null;
+  }
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home')
-    renderList(data, cn === 'banner' && oldState.ty === 'Vacant');
+    rendered = new List(data, cn === 'banner' && oldState.ty === 'Vacant');
 
   // Render post
   if(state.ty === 'Post') {
@@ -157,202 +154,215 @@ function reflection(path: String, activator: EventTarget | null = null) {
       const sibling = activator.parentElement.querySelector('svg');
       if(sibling) renderedTitle = sibling as SVGSVGElement;
     }
-    renderPost(post, renderedTitle);
+    rendered = new Post(post, renderedTitle);
   }
-
-  // TODO: cleanup to avoid scroll
 }
 
 /**
  * List rendering
  */
+class List implements RenderedEntity {
+  element: HTMLElement;
 
-function renderList(posts: Post[], initialHome: boolean) {
-  const list = document.getElementById('list')!;
-  const titles = posts.map(p => renderEntry(p));
-  list.replaceChildren(...titles);
-  list.animate([{
-    transform: 'translateY(-20px)',
-    opacity: 0,
-  }, {}], {
-    delay: initialHome ? 700 : 200,
-    duration: 200,
-    easing: 'ease-out',
-    fill: 'backwards',
-  });
-}
+  constructor(posts: PostData[], initialHome: boolean) {
+    const entries = posts.map(p => List.renderEntry(p));
+    const list = <div class="list">{...entries}</div>
+    this.element = list;
 
-function renderEntry(post: Post): HTMLElement {
-  const dispTime = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
-  const dispDate = dispTime.toLocaleString(['zh-CN', 'en-US'], {
-    dateStyle: 'long',
-  });
-  const updated = !!post.metadata.update_time;
+    document.getElementById('root')!.appendChild(list);
 
-  const [line, lineWidth] = renderLine(post.metadata.title_outline);
-  return <div class="entry">
-    <div class="entry-title" style={{
-      '--full-width': lineWidth,
-    }}>
-      {line}
-      <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>{post.metadata.title}</a>
+    list.animate([{
+      transform: 'translateY(-20px)',
+      opacity: 0,
+    }, {}], {
+      delay: initialHome ? 700 : 200,
+      duration: 200,
+      easing: 'ease-out',
+      fill: 'backwards',
+    });
+  }
+
+  private static renderEntry(post: PostData): HTMLElement {
+    const dispTime = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
+    const dispDate = dispTime.toLocaleString(['zh-CN', 'en-US'], {
+      dateStyle: 'long',
+    });
+    const updated = !!post.metadata.update_time;
+
+    const [line, lineWidth] = renderLine(post.metadata.title_outline);
+    return <div class="entry">
+      <div class="entry-title" style={{
+        '--full-width': lineWidth,
+      }}>
+        {line}
+        <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>{post.metadata.title}</a>
+      </div>
+      <div class="entry-time">{dispDate}</div>
     </div>
-    <div class="entry-time">{dispDate}</div>
-  </div>
-}
+  }
 
-function exitList() {
-  const list = document.getElementById('list')!;
-  list.animate([{}, {
-    transform: 'translateY(20px)',
-    opacity: 0,
-  }], {
-    duration: 200,
-    easing: 'ease-in',
-    fill: 'backwards',
-  }).finished.then(() => {
-    // FIXME: race. Check if epoch changed
-    list.replaceChildren();
-  });
+  async exit() {
+    const el = this.element;
+    return el.animate([{}, {
+      transform: 'translateY(20px)',
+      opacity: 0,
+    }], {
+      duration: 200,
+      easing: 'ease-in',
+      fill: 'backwards',
+    }).finished.then(() => el.remove());
+  }
 }
 
 /* Post rendering */
-function renderPost(post: Post, renderedTitle: SVGSVGElement | null = null) {
-  const title = renderLine(post.metadata.title_outline);
-  title[0].classList.add('post-title');
+class Post implements RenderedEntity {
+  element: HTMLElement;
 
-  title[0].style.setProperty('--full-width', title[1].toString());
-  const container = document.getElementById('post')!;
-  container.appendChild(title[0]);
+  constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
+    const [title, titleWidth] = renderLine(post.metadata.title_outline);
+    title.classList.add('post-title');
+    title.style.setProperty('--full-width', titleWidth.toString());
 
-  applyPostTitleVariation(title[0], renderedTitle);
-  if(!renderedTitle) applyPostTitleFreeAnimation(title[0], true);
-  renderedTitle?.style.setProperty('opacity', '0');
+    renderedTitle?.style.setProperty('opacity', '0');
 
-  const content = document.createElement('div');
-  content.classList.add('post-content');
-  content.innerHTML = post.html;
-  content.animate([
-    {
-      opacity: 0,
-      transform: 'translateY(5px)',
-    }, {}
-  ], {
-    delay: 200,
-    duration: 200,
-    easing: 'ease-out',
-    fill: 'both',
-  })
-  container.appendChild(<div class="post-content-wrapper">{content}</div>);
-}
+    const content = document.createElement('div');
+    content.classList.add('post-content');
+    content.innerHTML = post.html;
 
-function exitPost() {
-  const content = document.querySelector('.post-content:not(.post-content-retiring)');
-  if(!content) return;
-  content.classList.add('post-content-retiring');
-  content.animate([
-    {},
-    {
-      opacity: 0,
-      transform: 'translateY(5px)',
-    }
-  ], {
-    duration: 200,
-    easing: 'ease-in',
-    fill: 'both',
-  }).finished.then(() => content.parentElement!.remove());
-}
+    this.element = <div class="post">
+      {title}
+      <div class="post-content-wrapper">{content}</div>
+    </div>;
 
-async function applyPostTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
-  const strokes = Array.from(title.querySelectorAll('g.var-group path')) as SVGPathElement[];
-  let minX: number | null = null;
-  const promises = strokes.map((stroke, i) => {
-    const bbox = stroke.getBoundingClientRect();
-    let dist = 0;
-    if(minX === null)
-      minX = bbox.x;
-    else dist = Math.max(bbox.x - minX, 0);
+    document.getElementById('root')!.appendChild(this.element);
 
-    const offsetX = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);
-    const offsetY = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);
-    const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
-
-    const freeKeyframe = {
-      transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
-      opacity: 0,
-    };
-
-    const keyframes = entry ? [freeKeyframe, {}] : [{}, freeKeyframe];
-    return stroke.animate(keyframes, {
-      delay: dist * (entry ? 1.2 : 0.5),
-      duration: entry ? 500 : 200,
-      easing: entry ? 'cubic-bezier(0, 0, 0, 1)' : 'cubic-bezier(1, 0, 1, 1)',
+    Post.applyTitleVariation(title, renderedTitle);
+    if(!renderedTitle) Post.applyTitleFreeAnimation(title, true);
+    content.animate([
+      {
+        opacity: 0,
+        transform: 'translateY(5px)',
+      }, {}
+    ], {
+      delay: 200,
+      duration: 200,
+      easing: 'ease-out',
       fill: 'both',
-    }).finished;
-  });
+    })
+  }
 
-  await Promise.all(promises);
-}
+  async exit() {
+    const el = this.element;
+    const title = el.querySelector('.post-title') as SVGSVGElement;
+    const titleRemoved = Post.applyTitleFreeAnimation(title, false);
+    const content = el.querySelector('.post-content') as HTMLElement;
+    const contentRemoved = content.animate([
+      {},
+      {
+        opacity: 0,
+        transform: 'translateY(5px)',
+      }
+    ], {
+      duration: 200,
+      easing: 'ease-in',
+      fill: 'both',
+    });
 
-function applyPostTitleVariation(title: SVGSVGElement, ref: SVGElement | null = null) {
-  // Query location prior to applying variation
+    await Promise.all([titleRemoved, contentRemoved]);
+    el.remove();
+  }
 
-  let deltas: { dx: number, dy: number, scale: number }[] | null = null;
-  const grps = Array.from(title.querySelectorAll("g.var-group") as NodeListOf<HTMLElement | SVGElement>);
-  if(ref !== null) {
-    const refGrps = ref?.querySelectorAll("g.var-group") as NodeListOf<HTMLElement | SVGElement>;
-    deltas = grps.map((grp, i) => {
-      const r = refGrps[i];
+  private static applyTitleVariation(title: SVGSVGElement, ref: SVGElement | null = null) {
+    // Query location prior to applying variation
 
-      // TODO: do not hard code scale
+    let deltas: { dx: number, dy: number, scale: number }[] | null = null;
+    const grps = Array.from(title.querySelectorAll("g.var-group") as NodeListOf<HTMLElement | SVGElement>);
+    if(ref !== null) {
+      const refGrps = ref?.querySelectorAll("g.var-group") as NodeListOf<HTMLElement | SVGElement>;
+      deltas = grps.map((grp, i) => {
+        const r = refGrps[i];
 
-      // It's really hard to figure out the relative position
-      // when considering overarching scaling
-      // So we pre-set the target FLIP scale and then ask
-      // what's the delta
-      grp.style.setProperty('--var-scale', '0.5');
-      const curLoc = grp.getBoundingClientRect();
-      const refLoc = r.getBoundingClientRect();
-      return {
-        dx: refLoc.x - curLoc.x,
-        dy: refLoc.y - curLoc.y,
-        scale: 0.5,
+        // TODO: do not hard code scale
+
+        // It's really hard to figure out the relative position
+        // when considering overarching scaling
+        // So we pre-set the target FLIP scale and then ask
+        // what's the delta
+        grp.style.setProperty('--var-scale', '0.5');
+        const curLoc = grp.getBoundingClientRect();
+        const refLoc = r.getBoundingClientRect();
+        return {
+          dx: refLoc.x - curLoc.x,
+          dy: refLoc.y - curLoc.y,
+          scale: 0.5,
+        }
+      });
+    }
+
+    let pastXVar = 0;
+
+    grps.forEach((grp, i) => {
+      const scale = randomWithin(0.9, 1.2);
+      grp.style.setProperty('--var-scale', scale.toString());
+      grp.style.setProperty('--var-offset-x', pastXVar + 'px');
+      grp.style.setProperty('--var-offset-y', randomWithin(-0.1, 0.1) + 'px');
+
+      const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-approx-width'));
+      const grpXdiff = parseFloat(grp.style.getPropertyValue('--grp-xdiff'));
+
+      pastXVar += grpWidth * (scale - 1);
+
+      if(deltas) {
+        grp.animate([
+          {
+            transform: `
+              translate(${deltas[i].dx}px, ${deltas[i].dy}px)
+              scale(var(--size))
+              translateX(var(--grp-xdiff))
+              scale(${deltas[i].scale})
+            `,
+          },
+          {},
+        ], {
+          delay: grpXdiff * 50,
+          duration: 200,
+          easing: 'cubic-bezier(0, 0, 0, 1)',
+          fill: 'both',
+        });
       }
     });
   }
 
-  let pastXVar = 0;
+  private static async applyTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
+    const strokes = Array.from(title.querySelectorAll('g.var-group path')) as SVGPathElement[];
+    let minX: number | null = null;
+    const promises = strokes.map((stroke, _i) => {
+      const bbox = stroke.getBoundingClientRect();
+      let dist = 0;
+      if(minX === null)
+        minX = bbox.x;
+      else dist = Math.max(bbox.x - minX, 0);
 
-  grps.forEach((grp, i) => {
-    const scale = randomWithin(0.9, 1.2);
-    grp.style.setProperty('--var-scale', scale.toString());
-    grp.style.setProperty('--var-offset-x', pastXVar + 'px');
-    grp.style.setProperty('--var-offset-y', randomWithin(-0.1, 0.1) + 'px');
+      const offsetX = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);
+      const offsetY = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);
+      const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
 
-    const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-approx-width'));
-    const grpXdiff = parseFloat(grp.style.getPropertyValue('--grp-xdiff'));
+      const freeKeyframe = {
+        transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+        opacity: 0,
+      };
 
-    pastXVar += grpWidth * (scale - 1);
-
-    if(deltas) {
-      grp.animate([
-        {
-          transform: `
-            translate(${deltas[i].dx}px, ${deltas[i].dy}px)
-            scale(var(--size))
-            translateX(var(--grp-xdiff))
-            scale(${deltas[i].scale})
-          `,
-        },
-        {},
-      ], {
-        delay: grpXdiff * 50,
-        duration: 200,
-        easing: 'cubic-bezier(0, 0, 0, 1)',
+      const keyframes = entry ? [freeKeyframe, {}] : [{}, freeKeyframe];
+      return stroke.animate(keyframes, {
+        delay: dist * (entry ? 1.2 : 0.5),
+        duration: entry ? 500 : 200,
+        easing: entry ? 'cubic-bezier(0, 0, 0, 1)' : 'cubic-bezier(1, 0, 1, 1)',
         fill: 'both',
-      });
-    }
-  });
+      }).finished;
+    });
+
+    await Promise.all(promises);
+  }
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

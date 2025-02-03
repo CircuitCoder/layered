@@ -1,5 +1,4 @@
 import { TitleResp } from "./typings/TitleResp";
-import { randomWithin } from "./utils";
 
 function generateVarGroup(xdiff: number): SVGGElement {
   const g = document.createElementNS("http://www.w3.org/2000/svg", "g");

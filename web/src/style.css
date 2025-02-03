@@ -217,7 +217,7 @@ root {
 
 /* List & Title */
 
-#list {
+.list {
   position: absolute;
   top: 250px;
   left: 200px;
@@ -281,7 +281,7 @@ root {
 }
 
 /* Posts */
-#post {
+.post {
   position: absolute;
   width: 100%;
   top: 0;
@@ -406,7 +406,7 @@ root.banner-trigger {
     opacity: 0;
   }
 
-  & #list {
+  & .list {
     transform: translateY(-5px);
     opacity: 0;
   }
