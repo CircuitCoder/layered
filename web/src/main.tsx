@@ -69,9 +69,8 @@ function bootstrap() {
 /**
  * Animation
  */
-async function transition(oldState: State, newState: State) {
+async function exit(oldState: State, cn: string) {
   const root = document.getElementById('root')!;
-  const cn = updateClass(newState);
 
   if(oldState.ty === 'Vacant') {
     // Trigger startup animation
@@ -88,8 +87,14 @@ async function transition(oldState: State, newState: State) {
 
   if(oldState.ty === 'Post') {
     // Exit post
-    applyPostTitleFreeAnimation(document.querySelector('.post-title') as SVGSVGElement, false);
+    const curTitle = document.querySelector('.post-title:not(.post-title-retiring)') as SVGSVGElement;
+    curTitle.classList.add('post-title-retiring');
+    applyPostTitleFreeAnimation(curTitle, false).then(() => curTitle.remove());
+    await exitPost();
   }
+
+  if(oldState.ty === 'Home')
+    exitList();
 }
 
 function scroll() {
@@ -129,22 +134,22 @@ function parsePath(path: String): State {
 function reflection(path: String, activator: EventTarget | null = null) {
   // Commit exit animation
   const newState = parsePath(path);
+  const oldState = state;
+
+  state = newState;
 
   // TODO: Verify existence, or instead use 404
 
-  transition(state, newState);
-  state = newState;
+  const cn = updateClass(newState);
+  exit(oldState, cn);
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
-  if(state.ty === 'Home') {
-    document.getElementById('list')!.classList.remove('hidden');
-    renderList(data);
-  } else document.getElementById('list')!.classList.add('hidden');
+  if(state.ty === 'Home')
+    renderList(data, cn === 'banner' && oldState.ty === 'Vacant');
 
   // Render post
   if(state.ty === 'Post') {
-    document.getElementById('post')!.classList.remove('hidden');
     const slug = state.slug; // Workaround typechecker
     const post = data.find(p => p.metadata.id === slug)!;
     let renderedTitle: SVGSVGElement | null = null;
@@ -153,7 +158,7 @@ function reflection(path: String, activator: EventTarget | null = null) {
       if(sibling) renderedTitle = sibling as SVGSVGElement;
     }
     renderPost(post, renderedTitle);
-  } else document.getElementById('post')!.classList.add('hidden');
+  }
 
   // TODO: cleanup to avoid scroll
 }
@@ -162,10 +167,19 @@ function reflection(path: String, activator: EventTarget | null = null) {
  * List rendering
  */
 
-function renderList(posts: Post[]) {
+function renderList(posts: Post[], initialHome: boolean) {
   const list = document.getElementById('list')!;
   const titles = posts.map(p => renderEntry(p));
   list.replaceChildren(...titles);
+  list.animate([{
+    transform: 'translateY(-20px)',
+    opacity: 0,
+  }, {}], {
+    delay: initialHome ? 700 : 200,
+    duration: 200,
+    easing: 'ease-out',
+    fill: 'backwards',
+  });
 }
 
 function renderEntry(post: Post): HTMLElement {
@@ -185,6 +199,21 @@ function renderEntry(post: Post): HTMLElement {
     </div>
     <div class="entry-time">{dispDate}</div>
   </div>
+}
+
+function exitList() {
+  const list = document.getElementById('list')!;
+  list.animate([{}, {
+    transform: 'translateY(20px)',
+    opacity: 0,
+  }], {
+    duration: 200,
+    easing: 'ease-in',
+    fill: 'backwards',
+  }).finished.then(() => {
+    // FIXME: race. Check if epoch changed
+    list.replaceChildren();
+  });
 }
 
 /* Post rendering */
@@ -217,10 +246,27 @@ function renderPost(post: Post, renderedTitle: SVGSVGElement | null = null) {
   container.appendChild(<div class="post-content-wrapper">{content}</div>);
 }
 
-function applyPostTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
+function exitPost() {
+  const content = document.querySelector('.post-content:not(.post-content-retiring)');
+  if(!content) return;
+  content.classList.add('post-content-retiring');
+  content.animate([
+    {},
+    {
+      opacity: 0,
+      transform: 'translateY(5px)',
+    }
+  ], {
+    duration: 200,
+    easing: 'ease-in',
+    fill: 'both',
+  }).finished.then(() => content.parentElement!.remove());
+}
+
+async function applyPostTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
   const strokes = Array.from(title.querySelectorAll('g.var-group path')) as SVGPathElement[];
   let minX: number | null = null;
-  strokes.forEach((stroke, i) => {
+  const promises = strokes.map((stroke, i) => {
     const bbox = stroke.getBoundingClientRect();
     let dist = 0;
     if(minX === null)
@@ -237,13 +283,15 @@ function applyPostTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
     };
 
     const keyframes = entry ? [freeKeyframe, {}] : [{}, freeKeyframe];
-    stroke.animate(keyframes, {
+    return stroke.animate(keyframes, {
       delay: dist * (entry ? 1.2 : 0.5),
       duration: entry ? 500 : 200,
       easing: entry ? 'cubic-bezier(0, 0, 0, 1)' : 'cubic-bezier(1, 0, 1, 1)',
       fill: 'both',
-    });
+    }).finished;
   });
+
+  await Promise.all(promises);
 }
 
 function applyPostTitleVariation(title: SVGSVGElement, ref: SVGElement | null = null) {
@@ -299,7 +347,7 @@ function applyPostTitleVariation(title: SVGSVGElement, ref: SVGElement | null = 
         {},
       ], {
         delay: grpXdiff * 50,
-        duration: 300,
+        duration: 200,
         easing: 'cubic-bezier(0, 0, 0, 1)',
         fill: 'both',
       });

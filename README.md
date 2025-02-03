@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] Basic list rendering, post rendering, history API
+- [x] Basic list rendering, post rendering, history API
   - [ ] Scroll restoration
 - [ ] Dark mode
 - [ ] RSS
@@ -14,3 +14,4 @@
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
   - [ ] `content-visibility: auto;` and on-demand canvas rendering
+  - [ ] Title line wrap

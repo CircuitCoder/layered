@@ -61,6 +61,8 @@ root {
 
   width: 160px;
   height: 100px;
+
+  z-index: 1;
 }
 
 #logo-shards {
@@ -131,6 +133,8 @@ root {
   position: fixed;
   top: 35px;
   left: 110px;
+
+  z-index: 1;
 
   transition: transform .2s ease;
 
@@ -218,17 +222,6 @@ root {
   top: 250px;
   left: 200px;
   width: calc(100% - 200px);
-  transition-property: transform, opacity;
-  transition-timing-function: ease;
-  transition-duration: .2s;
-  transition-delay: .2s;
-
-  &.hidden {
-    pointer-events: none;
-    transform: translateX(-20px);
-    opacity: 0;
-    transition-delay: 0s;
-  }
 }
 
 .entry {
@@ -288,6 +281,12 @@ root {
 }
 
 /* Posts */
+#post {
+  position: absolute;
+  width: 100%;
+  top: 0;
+}
+
 .post-title {
   --size: 48;
   --baseline-y: 48px;
@@ -315,7 +314,7 @@ root {
 .post-content-wrapper {
   margin-left: 200px;
   padding-top: 80vh;
-  padding: calc(50vh + 200px) 60px 20px 0;
+  padding: calc(50vh + 100px) 60px 60px 0;
 }
 
 .post-content {
@@ -323,12 +322,6 @@ root {
   margin: 0 auto;
   font-size: 16px;
   line-height: 28px;
-}
-
-#post.hidden .post-content {
-  transition: transform .2s ease-in, opacity .2s ease-in;
-  transform: translateY(20px);
-  opacity: 0;
 }
 
 /* States */
@@ -360,12 +353,6 @@ root.initial {
 
   & #brand {
     transition-delay: 0;
-  }
-
-  & #list {
-    transition-timing-function: ease-out;
-    transition-duration: .3s;
-    transition-delay: .7s;
   }
 }
 
