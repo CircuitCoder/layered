@@ -17,3 +17,7 @@ export function getLinkInAnscenstor(e: EventTarget | null): string | null {
 
   return null;
 }
+
+export function randomWithin(a: number, b: number): number {
+  return a + Math.random() * (b - a);
+}

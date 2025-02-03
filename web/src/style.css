@@ -10,13 +10,13 @@
 
 * {
   box-sizing: inherit;
+  transform-style: inherit;
 }
 
 body {
   padding: 0;
   margin: 0;
   box-sizing: border-box;
-  padding-top: 250px;
 }
 
 button {
@@ -38,8 +38,7 @@ a {
 
 /* Root */
 
-:root {
-
+root {
   font-family: "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
   color-scheme: light dark;
 
@@ -51,7 +50,19 @@ a {
   --color-bg: white;
 }
 
-/* Logo */
+/* Logo & nav */
+#logo {
+  position: fixed;
+  left: 20px;
+  top: 30px;
+  transform-origin: 20px 0;
+  transform: scale(1.5);
+  transition: transform .2s ease;
+
+  width: 160px;
+  height: 100px;
+}
+
 #logo-shards {
   & > .logo-shards-container {
     filter: drop-shadow(0 var(--shadow) calc(var(--shadow) * 1.5) rgba(0, 0, 0, 0.3));
@@ -116,18 +127,6 @@ a {
   transform: translateX(calc(var(--gap) - var(--distance)));
 }
 
-#logo {
-  position: fixed;
-  left: 20px;
-  top: 30px;
-  transform-origin: 20px 0;
-  transform: scale(1.5);
-  transition: transform .2s ease;
-
-  width: 160px;
-  height: 100px;
-}
-
 #lang-sel {
   position: fixed;
   top: 35px;
@@ -173,7 +172,6 @@ a {
 
   margin: 0;
   line-height: 56px;
-  z-index: -1;
   clip-path: inset(0 0 0 -100px);
 
   & > span {
@@ -216,7 +214,10 @@ a {
 /* List & Title */
 
 #list {
-  margin-left: 200px;
+  position: absolute;
+  top: 250px;
+  left: 200px;
+  width: calc(100% - 200px);
   transition-property: transform, opacity;
   transition-timing-function: ease;
   transition-duration: .2s;
@@ -255,23 +256,48 @@ a {
   color: transparent;
 }
 
-.title {
+.entry-title .title {
   width: 100%;
   height: 40px;
+}
+
+.entry-title .title .glyph {
+  transition: transform .2s ease;
+  --var-multiplier: 0;
+}
+
+.entry-title:hover .title .glyph {
+  --var-multiplier: .3;
+}
+
+.title {
+  /* transform-style: preserve-3d; */
 
   & .line {
     transform: translateY(var(--baseline-y)) scale(var(--size))
   }
 
   & .glyph {
-    transform: translateX(var(--xdiff));
-
-    & mask path {
-      transform: translate(0.05px, 0.05px);
-    }
+    transform:
+      translate(
+        calc(var(--xdiff) + var(--var-multiplier) * var(--var-offset-x) * 1px),
+        calc(var(--var-multiplier) * var(--var-offset-y) * 1px)
+      )
+      scale(calc(var(--var-multiplier) * var(--var-scale) + (1 - var(--var-multiplier))));
   }
 
   pointer-events: none;
+}
+
+/* Posts */
+.post-title {
+  --size: 36;
+  --baseline-y: 30px;
+  position: fixed;
+  top: 50vh;
+  left: 50vw;
+  transform: translate(-50%, -50%);
+  height: 60px;
 }
 
 /* States */

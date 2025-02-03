@@ -58,7 +58,7 @@ function bootstrap() {
 
     e.preventDefault();
     history.pushState(null, '', link);
-    reflection(link);
+    reflection(link, e.target);
   })
 
   window.addEventListener('popstate', () => {
@@ -120,16 +120,35 @@ function parsePath(path: String): State {
     return { ty: 'NotFound' };
 }
 
-function reflection(path: String) {
+function reflection(path: String, activator: EventTarget | null = null) {
   // Commit exit animation
   const newState = parsePath(path);
+
+  // TODO: Verify existence, or instead use 404
+
   transition(state, newState);
   state = newState;
 
+  // Render list
+  // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home') {
     document.getElementById('list')!.classList.remove('hidden');
     renderList(data);
   } else document.getElementById('list')!.classList.add('hidden');
+
+  // Render post
+  if(state.ty === 'Post') {
+    const slug = state.slug; // Workaround typechecker
+    const post = data.find(p => p.metadata.id === slug)!;
+    let renderedTitle: SVGSVGElement | null = null;
+    if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
+      const sibling = activator.parentElement.querySelector('svg');
+      if(sibling) renderedTitle = sibling as SVGSVGElement;
+    }
+    renderPost(post, renderedTitle);
+  } else document.getElementById('post')!.classList.add('hidden');
+
+  // TODO: cleanup to avoid scroll
 }
 
 /**
@@ -159,6 +178,31 @@ function renderEntry(post: Post): HTMLElement {
     </div>
     <div class="entry-time">{dispDate}</div>
   </div>
+}
+
+/* Post rendering */
+function renderPost(post: Post, renderedTitle: SVGSVGElement | null = null) {
+  let title: SVGSVGElement;
+  if(renderedTitle)
+    title = postTitleEntry(renderedTitle);
+  else {
+    title = renderLine(post.metadata.title_outline)[0];
+    title.classList.add('post-title');
+  }
+
+  const container = document.getElementById('post')!;
+  container.appendChild(title);
+}
+
+function postTitleEntry(old: SVGSVGElement): SVGSVGElement {
+  const oldLoc = old.getBoundingClientRect();
+  const newTitle = old.cloneNode(true) as SVGSVGElement;
+  newTitle.classList.remove('entry-title');
+  newTitle.classList.add('post-title');
+
+  // TODO: flip
+
+  return newTitle;
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);
