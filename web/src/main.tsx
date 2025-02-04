@@ -39,6 +39,7 @@ let rendered: RenderedEntity | null = null;
 type Locale = 'zh-CN' | 'en-US';
 
 let preferredLocale: Locale = 'zh-CN'; // TODO: parse from URL
+let onTop = true;
 
 function bootstrap() {
   applyStatic();
@@ -48,7 +49,13 @@ function bootstrap() {
   // Bootstrap init animation
   reflection(document.location.pathname);
 
-  // TODO(routing): register popstate event
+  // Listen on scroll sentinel
+  const sentinel = document.getElementById('scroll-sentinel')!;
+  const observer = new IntersectionObserver(ents => {
+    onTop = ents[0].isIntersecting;
+    updateBannerClass();
+  });
+  observer.observe(sentinel);
 
   window.addEventListener('scroll', scroll);
   window.addEventListener('click', e => {
@@ -92,13 +99,14 @@ async function startup(cn: string) {
 }
 
 function scroll() {
-  updateBannerClass(state);
-}
-
-function updateBannerClass(state: State): string {
   const root = document.getElementById('root')!;
   root.style.setProperty('--scroll', window.scrollY.toString());
-  const targetClass = window.scrollY === 0 && state.ty === 'Home' ? 'banner' : 'header';
+}
+
+function updateBannerClass(given?: State): string {
+  const used = given ?? state;
+  const root = document.getElementById('root')!;
+  const targetClass = onTop && used.ty === 'Home' ? 'banner' : 'header';
   if(root.classList.contains(targetClass)) return targetClass;
 
   // Also remove initial. All banner state changes during initial immediately halts the startup animation

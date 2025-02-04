@@ -54,6 +54,15 @@ root {
   overflow-x: hidden;
 }
 
+#scroll-sentinel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 20px; /* Dictates the scroll distance from top */
+  pointer-events: none;
+}
+
 /* Logo & nav */
 #logo {
   position: fixed;
