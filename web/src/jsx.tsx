@@ -6,7 +6,7 @@ export type JSXData = {
   class?: classDef,
   style?: styleDef,
   [other: string]: any,
-}
+} | null;
 
 function evalClassDefSingle(def: classDefSingle): string {
   if(typeof def === 'string') return def;
@@ -36,9 +36,9 @@ function flatten(e: RecursiveElement[]): NonrecursiveElement[] {
 export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...children: RecursiveElement[]) => Element {
   return (tag, data, ...children) => {
     const el = ns !== undefined ? document.createElementNS(ns, tag) : document.createElement(tag);
-    if(data.class !== undefined) el.className = evalClassDef(data.class);
-    if(data.style !== undefined) el.setAttribute('style', evalStyleDef(data.style));
-    for(const key in data) {
+    if(data?.class !== undefined) el.setAttribute("class", evalClassDef(data.class));
+    if(data?.style !== undefined) el.setAttribute('style', evalStyleDef(data.style));
+    if(data !== null) for(const key in data) {
       if(key === 'class' || key === 'style') continue;
       el.setAttribute(key, data[key]);
     }
