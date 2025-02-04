@@ -215,7 +215,15 @@ class List implements RenderedEntity {
     const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
     const line = renderLine(post.metadata.title_outline);
-    relayoutLine(line, 600 / 24); // TODO: don't hard-code
+
+    // Get available space
+    const viewportWidth = window.innerWidth;
+    let titleWidth: number;
+    if(viewportWidth > 500) titleWidth = Math.max(viewportWidth - 120, 400);
+    else titleWidth = viewportWidth - 80;
+
+    relayoutLine(line, titleWidth / 24); // TODO: don't hard-code
+
     return <div class="entry">
       <div class="entry-title" style={{
       }}>
@@ -247,7 +255,15 @@ class Post implements RenderedEntity {
 
   constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
     const title = renderLine(post.metadata.title_outline);
-    const titleLayout = relayoutLine(title, 600 / 48, true);
+
+    // Get available space
+    const viewportWidth = window.innerWidth;
+    let titleWidth: number;
+    if(viewportWidth > 800) titleWidth = Math.min(viewportWidth - 300, 900);
+    else if(viewportWidth > 500) titleWidth = viewportWidth - 120;
+    else titleWidth = viewportWidth - 80;
+
+    const titleLayout = relayoutLine(title, titleWidth / 48, true);
     title.classList.add('post-title');
     // title.style.setProperty('--full-width', titleWidth.toString());
 
@@ -298,7 +314,13 @@ class Post implements RenderedEntity {
 
     const metadata = genMetadata('post-metadata', []);
     const auxTitle = renderLine(post.metadata.title_outline);
-    relayoutLine(auxTitle, 200 / 16); // TODO: don't hard-code
+
+    // Get available space
+    let auxTitleWidth: number;
+    if(viewportWidth > 800) auxTitleWidth = 160;
+    else auxTitleWidth = viewportWidth - 260;
+
+    relayoutLine(auxTitle, auxTitleWidth/ 16); // TODO: don't hard-code
 
     const auxMetadata = genMetadata('post-metadata-aux', [
       auxTitle
@@ -344,7 +366,7 @@ class Post implements RenderedEntity {
     contentWrapper.animate([
       {
         opacity: 0,
-        transform: 'translateY(5px)',
+        transform: 'translateY(-10px)',
       }, {}
     ], {
       delay: 200,
@@ -378,7 +400,7 @@ class Post implements RenderedEntity {
       {},
       {
         opacity: 0,
-        transform: 'translateY(5px)',
+        transform: 'translateY(10px)',
       }
     ], {
       duration: 200,
@@ -425,23 +447,34 @@ class Post implements RenderedEntity {
     let pastXVar = 0;
     let lastLine = 0;
 
-    grps.forEach((grp, i) => {
+    const uncommittedX = new Map<HTMLElement | SVGElement, number>();
+    function commit(delta: number) {
+      for(const [grp, x] of uncommittedX)
+        grp.style.setProperty('--var-offset-x', (x + delta).toString() + 'px');
+      uncommittedX.clear();
+    }
+
+    for(const grp of grps) {
       const curLine = parseInt(grp.style.getPropertyValue('--grp-line'));
       if(curLine !== lastLine) {
+        commit(-pastXVar / 2);
         pastXVar = 0;
         lastLine = curLine;
       }
 
       const scale = randomWithin(0.9, 1.2);
       grp.style.setProperty('--var-scale', scale.toString());
-      grp.style.setProperty('--var-offset-x', pastXVar + 'px');
       grp.style.setProperty('--var-offset-y', randomWithin(-0.1, 0.1) + 'px');
+      uncommittedX.set(grp, pastXVar);
 
       const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-approx-width'));
 
       pastXVar += grpWidth * (scale - 1);
+    };
+    commit(-pastXVar / 2);
 
-      if(deltas) {
+    if(deltas) {
+      grps.forEach((grp, i) => {
         grp.animate([
           {
             transform: `
@@ -459,8 +492,8 @@ class Post implements RenderedEntity {
           easing: 'cubic-bezier(0, 0, 0, 1)',
           fill: 'both',
         });
-      }
-    });
+      });
+    }
   }
 
   private static async applyTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
@@ -468,10 +501,10 @@ class Post implements RenderedEntity {
     let minX: number | null = null;
     const promises = strokes.map((stroke, _i) => {
       const bbox = stroke.getBoundingClientRect();
-      let dist = 0;
-      if(minX === null)
-        minX = bbox.x;
-      else dist = Math.max(bbox.x - minX, 0);
+      const parentBbox = stroke.parentElement!.getBoundingClientRect();
+      const inGrpXdiff = stroke.parentElement!.style.getPropertyValue('--in-grp-xdiff');
+      const grpXdiff = stroke.parentElement!.parentElement!.style.getPropertyValue('--grp-xdiff');
+      const dist = (bbox.x - parentBbox.x) + (parseFloat(inGrpXdiff) + parseFloat(grpXdiff)) * 48;
 
       const offsetX = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);
       const offsetY = entry ? randomWithin(-1, .7): randomWithin(-0.2, 0.5);

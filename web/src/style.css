@@ -5,6 +5,8 @@
  * 800 for landscape tablets
  *   Landscape tablet has sideway centered posts
  *   A in-between breakpoint = 950px is used to tune down post width 600px -> 450px
+ * 500 for small phones
+ *   reduced padding, vertical metadata
  */
 
 /* Typed custom properties */
@@ -351,6 +353,10 @@ nav {
     width: 100%;
     padding: 250px 60px 0 60px;
   }
+
+  @media (max-width: 500px) {
+    padding: 250px 40px 0 40px;
+  }
 }
 
 .entry {
@@ -409,6 +415,13 @@ nav {
     50vh,
     calc(240px + var(--title-line-height) * var(--title-line-cnt))
   );
+
+  @media (max-width: 800px) {
+    --post-top-gutter: max(
+      calc(160px + var(--title-line-height) * var(--title-line-cnt)),
+      calc(240px + 0.5 * var(--title-line-height) * var(--title-line-cnt))
+    )
+  }
 }
 
 .post-title {
@@ -422,7 +435,7 @@ nav {
   pointer-events: all;
 
   @media (max-width: 1150px) {
-    transform: translateX(100px) translateX(-50%) translateY(-100%);
+    transform: translateX(90px) translateX(-50%) translateY(-100%);
   }
 
   @media (max-width: 800px) {
@@ -449,11 +462,15 @@ nav {
   position: relative;
 
   @media (max-width: 1150px) {
-    padding: 0px 0px 60px 240px;
+    padding: 0px 60px 60px 240px;
   }
 
   @media (max-width: 800px) {
     padding: 0px 60px 60px 60px;
+  }
+
+  @media (max-width: 500px) {
+    padding: 0px 40px 60px 40px;
   }
 }
 
@@ -490,11 +507,22 @@ nav {
   top: -80px; /* .post-content-wrapper was 50vh + 100px */
 
   @media (max-width: 1150px) {
-    left: 200px;
+    left: 180px;
   }
 
   @media (max-width: 800px) {
     left: 0;
+  }
+
+  @media (max-width: 500px) {
+    position: relative;
+    left: 0;
+    flex-direction: column;
+    margin-bottom: -40px;
+    & .post-metadata-line {
+      justify-content: center;
+      margin-bottom: 5px;
+    }
   }
 
   display: flex;

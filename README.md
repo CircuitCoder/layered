@@ -3,7 +3,7 @@
 - [x] Basic list rendering, post rendering, history API
   - [ ] Scroll restoration
 - [x] Dark mode
-- [ ] Responsive
+- [x] Responsive
 - [ ] Fill in the about page
 - [ ] RSS
 - [ ] OpenGraph
