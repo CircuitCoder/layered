@@ -1,8 +1,12 @@
 import { Post } from "./typings/Post";
 
-import dataUnty from "../../data.json";
-export const data = dataUnty as Post[];
-
+// TODO: regular cache invalidation
+// TODO: optimistic loading
+let cached: Post[] | null = null;
 export async function getData(): Promise<Post[]> {
-  return data;
+  if(cached === null) {
+    const req = await fetch("/data.json");
+    cached = await req.json();
+  }
+  return cached as Post[];
 }
