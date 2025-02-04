@@ -14,14 +14,22 @@ type RenderDimensions = {
 }
 
 // TODO(perf): cache width with WeakMap
-export function relayoutLine(svg: SVGSVGElement, maxWidth: number = Infinity): RenderDimensions {
+export function relayoutLine(svg: SVGSVGElement, maxWidth: number = Infinity, centered: boolean = false): RenderDimensions {
   if(maxWidth <= 0) throw new Error("maxWidth must be positive");
+  if(centered && !Number.isFinite(maxWidth)) throw new Error("centered layout requires finite maxWidth");
 
   const grps = svg.querySelectorAll('.var-group') as NodeListOf<SVGGElement>;
   let line = 0;
   let lineWidth = 0;
   let maxLineWidth = 0;
   let totWidth = 0;
+
+  const pendingXdiff = new Map<SVGGElement, number>();
+  function commitXdiff(delta: number) {
+    for(const [g, xdiff] of pendingXdiff)
+      g.style.setProperty('--grp-line-xdiff', (xdiff + delta).toString() + 'px');
+    pendingXdiff.clear();
+  }
 
   for(const g of grps) {
     const approxWidth = parseFloat(g.style.getPropertyValue('--grp-approx-width'));
@@ -38,19 +46,21 @@ export function relayoutLine(svg: SVGSVGElement, maxWidth: number = Infinity): R
     if(spaceOnly) overflowed = false;
 
     if(overflowed) {
+      commitXdiff(centered ? ((maxWidth - lineWidth) / 2) : 0);
       ++line;
       lineWidth = 0;
     }
     g.style.setProperty('--grp-line', line.toString());
-    g.style.setProperty('--grp-line-xdiff', lineWidth.toString() + 'px');
+    pendingXdiff.set(g, lineWidth);
     lineWidth += approxWidth;
 
     if(!spaceOnly)
       maxLineWidth = Math.max(maxLineWidth, lineWidth);
   }
 
+  commitXdiff(centered ? ((maxWidth - lineWidth) / 2) : 0);
   svg.style.setProperty('--line-cnt', (line + 1).toString());
-  svg.style.setProperty('--optical-width', maxLineWidth.toString());
+  svg.style.setProperty('--optical-width', (centered ? maxWidth : maxLineWidth).toString());
 
   return {
     totalWidth: totWidth,

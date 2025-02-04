@@ -316,7 +316,7 @@ root {
 .post-title {
   --size: 48;
   --baseline-y: 48px;
-  --line-height: 48px;
+  --line-height: 60px;
   position: fixed;
   bottom: 50vh;
   left: 50vw;

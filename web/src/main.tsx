@@ -238,7 +238,7 @@ class Post implements RenderedEntity {
 
   constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
     const title = renderLine(post.metadata.title_outline);
-    relayoutLine(title, 650 / 48);
+    relayoutLine(title, 650 / 48, true);
     title.classList.add('post-title');
     // title.style.setProperty('--full-width', titleWidth.toString());
 
