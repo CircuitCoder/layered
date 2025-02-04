@@ -381,6 +381,7 @@ root {
   left: 40px;
   top: 140px;
   display: block;
+  z-index: 1;
 
   & .post-metadata-line {
     margin-bottom: 5px;
