@@ -6,6 +6,7 @@ import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
 import { relayoutLine, renderLine } from "./font";
 import { jsx } from "./jsx";
 import * as Icons from "./icons";
+import * as CONFIG from "./config";
 
 import { Temporal } from "@js-temporal/polyfill";
 import 'giscus';
@@ -157,6 +158,7 @@ async function reflection(path: String, activator: EventTarget | null = null) {
 
   // The default title
   let title: string = '分层 - Layered';
+  let backlink: string | null = null;
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
@@ -169,6 +171,7 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     const post = data.find(p => p.metadata.id === slug)!;
     title = post.metadata.title + ' | 分层 - Layered';
     let renderedTitle: SVGSVGElement | null = null;
+    backlink = CONFIG.BASE + '/post/' + slug;
     if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
       const sibling = activator.parentElement.querySelector('svg');
       if(sibling) renderedTitle = sibling as SVGSVGElement;
@@ -176,7 +179,17 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     rendered = new Post(post, renderedTitle);
   }
 
+  // TODO: use special procedure during SSR
   document.title = title;
+  if(backlink) {
+    let meta = document.querySelector('meta[name="giscus:backlink"]');
+    if(meta) meta.setAttribute('content', backlink);
+    else {
+      meta = <meta name="giscus:backlink" content={backlink} />;
+      document.head.appendChild(meta);
+    }
+  } else
+    document.querySelector('meta[name="giscus:backlink"]')?.remove();
 }
 
 function freezeScroll(el: HTMLElement) {
@@ -389,7 +402,6 @@ class Post implements RenderedEntity {
     });
     this.observer.observe(metadata);
 
-    // TODO: giscus backlink
     // TODO: opengraph
   }
 
