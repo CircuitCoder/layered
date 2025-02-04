@@ -155,6 +155,9 @@ async function reflection(path: String, activator: EventTarget | null = null) {
   // All transitions require fetching all data, so we wait on that
   const data = await getData();
 
+  // The default title
+  let title: string = '分层 - Layered';
+
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home')
@@ -164,6 +167,7 @@ async function reflection(path: String, activator: EventTarget | null = null) {
   if(state.ty === 'Post') {
     const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
     const post = data.find(p => p.metadata.id === slug)!;
+    title = post.metadata.title + ' | 分层 - Layered';
     let renderedTitle: SVGSVGElement | null = null;
     if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
       const sibling = activator.parentElement.querySelector('svg');
@@ -172,7 +176,7 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     rendered = new Post(post, renderedTitle);
   }
 
-  // TODO: title
+  document.title = title;
 }
 
 function freezeScroll(el: HTMLElement) {
