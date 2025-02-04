@@ -23,7 +23,17 @@ function evalStyleDef(def: styleDef): string {
   else return Object.keys(def).map(key => `${key}: ${def[key]}`).join('; ');
 }
 
-export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...children: (Element | string)[]) => Element {
+type RecursiveElement = Element | string | boolean | null | undefined | RecursiveElement[];
+type NonrecursiveElement = Element | string;
+function flatten(e: RecursiveElement[]): NonrecursiveElement[] {
+  return e.filter(e => !!e).flatMap(e => {
+    if(Array.isArray(e)) return flatten(e);
+    else if(e === true) return ['true'];
+    return [e];
+  }) as NonrecursiveElement[];
+}
+
+export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...children: RecursiveElement[]) => Element {
   return (tag, data, ...children) => {
     const el = ns !== undefined ? document.createElementNS(ns, tag) : document.createElement(tag);
     if(data.class !== undefined) el.className = evalClassDef(data.class);
@@ -32,7 +42,7 @@ export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...childre
       if(key === 'class' || key === 'style') continue;
       el.setAttribute(key, data[key]);
     }
-    el.append(...children.filter(e => !!e));
+    el.append(...flatten(children));
     return el;
   }
 }

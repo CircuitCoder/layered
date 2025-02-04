@@ -13,6 +13,7 @@
 - [ ] Translations
 - [ ] SSR (basically preload all inline HTMLs)
 - [ ] Service worker
+- [ ] Accessibility
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
   - [ ] `content-visibility: auto;` and on-demand canvas rendering

@@ -312,16 +312,16 @@ root {
   --size: 48;
   --baseline-y: 48px;
   position: fixed;
-  top: 50vh;
+  bottom: 50vh;
   left: 50vw;
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
   height: 60px;
   width: calc(var(--full-width) * var(--size) * 1px);
   pointer-events: all;
 
   & .var-group {
     transform:
-      translateY(calc(0px - 1px * var(--scroll) * (var(--var-scale) + 1) / 2))
+      translateY(calc(0px - 1px * var(--scroll) * (var(--var-scale) + 1.5) / 2))
       scale(var(--size))
       translateX(var(--grp-xdiff))
       translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
@@ -333,7 +333,7 @@ root {
 }
 
 .post-content-wrapper {
-  margin-left: 200px;
+  margin-left: 240px;
   padding-top: 80vh;
   padding: calc(50vh + 100px) 60px 60px 0;
 }
@@ -345,12 +345,85 @@ root {
   line-height: 28px;
 }
 
+.post-metadata, .post-metadata-aux {
+  & .post-metadata-line {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    margin-right: 5px;
+  }
+
+  & svg:not(.title) {
+    height: 18px;
+    fill: rgba(0,0,0,.5);
+  }
+
+  font-size: 14px;
+  line-height: 18px;
+}
+
+.post-metadata {
+  position: absolute;
+
+  left: 0;
+  right: 0;
+  top: calc(50vh + 20px);
+
+  display: flex;
+  justify-content: center;
+}
+
+.post-metadata-aux {
+  position: fixed;
+  left: 40px;
+  top: 140px;
+  display: block;
+
+  & .title {
+    height: 24px;
+    --baseline-y: 18px;
+    --size: 16;
+    margin-bottom: 10px;
+  }
+
+  & .post-metadata-line, & .title .var-group {
+    transition-property: opacity, transform;
+    transition-duration: .1s;
+    transition-timing-function: ease-out;
+  }
+
+  & .title .var-group {
+    transition-delay: calc(var(--grp-id) * 15ms);
+  }
+}
+
+.post {
+  &.post-exiting, &:not(.post-docked) {
+    & .post-metadata-aux {
+      & .post-metadata-line {
+        opacity: 0;
+        transform: translateX(-5px);
+      }
+      & .title .var-group {
+        opacity: 0;
+        transform: translateX(-5px) scale(var(--size)) translateX(var(--grp-xdiff));
+      }
+    }
+  }
+}
+
+.post-metadata-published, .post-metadata-updated {
+  font-family: monospace;
+}
+
 /* Content */
 blockquote {
   border-left: rgba(0,0,0,.3) 10px solid;
   background: rgba(0,0,0,.05);
   margin: 0;
   padding: 0px 20px 0 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 3px rgba(0,0,0,.3);
   display: flow-root;
 }
 

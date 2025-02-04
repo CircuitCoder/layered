@@ -37,6 +37,9 @@ interface RenderedEntity {
 
 let state: State = { ty: 'Vacant' };
 let rendered: RenderedEntity | null = null;
+type Locale = 'zh-CN' | 'en-US';
+
+let preferredLocale: Locale = 'zh-CN'; // TODO: parse from URL
 
 function bootstrap() {
   applyStatic();
@@ -197,8 +200,8 @@ class List implements RenderedEntity {
 
   private static renderEntry(post: PostData): HTMLElement {
     const dispTime = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
-    const dispDate = dispTime.toLocaleString(['zh-CN', 'en-US'], {
-      dateStyle: 'long',
+    const dispDate = dispTime.toLocaleString(preferredLocale, {
+      dateStyle: 'medium',
     });
     const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
@@ -231,6 +234,7 @@ class List implements RenderedEntity {
 /* Post rendering */
 class Post implements RenderedEntity {
   element: HTMLElement;
+  observer: IntersectionObserver;
 
   constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
     const [title, titleWidth] = renderLine(post.metadata.title_outline);
@@ -243,8 +247,55 @@ class Post implements RenderedEntity {
     content.classList.add('post-content');
     content.innerHTML = post.html;
 
+    const publishTime = Temporal.Instant.from(post.metadata.publish_time);
+    const publishTimeStr = publishTime.toLocaleString(preferredLocale, {
+      dateStyle: 'short',
+      timeStyle: 'short',
+    });
+
+    let updatedTimeStr: string | null = null;
+    if(post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time) {
+      const updatedTime = Temporal.Instant.from(post.metadata.update_time);
+      updatedTimeStr = updatedTime.toLocaleString(preferredLocale, {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      });
+    }
+
+    function genMetadata(cn: string, additional: Element[]): Element {
+      return (
+        <div class={cn}>
+          {...additional}
+          <div class="post-metadata-line post-metadata-published">
+            { Icons.Event.cloneNode(true) }
+            { publishTimeStr }
+          </div>
+          {
+            updatedTimeStr && <div class="post-metadata-line post-metadata-updated">
+              { Icons.EventEdit.cloneNode(true) }
+              { updatedTimeStr }
+            </div>
+          }
+          <div class="post-metadata-line post-metadata-tags">
+            { Icons.Tag.cloneNode(true) }
+            { post.metadata.tags.map(tag => <a href={`/tag/${tag}`} class="post-metadata-tag">
+              {tag}
+            </a>) }
+          </div>
+        </div>
+      );
+    };
+
+    const metadata = genMetadata('post-metadata', []);
+    const [auxTitle, auxTitleWidth] = renderLine(post.metadata.title_outline);
+    const auxMetadata = genMetadata('post-metadata-aux', [
+      auxTitle
+    ]);
+
     this.element = <div class="post">
       {title}
+      {metadata}
+      {auxMetadata}
       <div class="post-content-wrapper">{content}</div>
     </div>;
 
@@ -263,10 +314,21 @@ class Post implements RenderedEntity {
       easing: 'ease-out',
       fill: 'both',
     })
+
+    this.observer = new IntersectionObserver(ents => {
+      for(const ent of ents) {
+        if(ent.isIntersecting)
+          this.element.classList.remove('post-docked');
+        else 
+          this.element.classList.add('post-docked');
+      }
+    });
+    this.observer.observe(metadata);
   }
 
   async exit() {
     const el = this.element;
+    el.classList.add('post-exiting');
     freezeScroll(el);
     const title = el.querySelector('.post-title') as SVGSVGElement;
     const titleRemoved = Post.applyTitleFreeAnimation(title, false);

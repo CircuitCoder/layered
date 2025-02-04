@@ -19,6 +19,7 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
 
   let xdiff = 0;
   let inGrpXdiff = 0;
+  let grpCnt = 0;
   for(const chr of line.chars) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -57,6 +58,8 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
     if(!keep) {
       if(group) group.style.setProperty('--grp-approx-width', inGrpXdiff.toString());
       group = generateVarGroup(xdiff);
+      group.style.setProperty('--grp-id', grpCnt.toString());
+      ++grpCnt;
       root.appendChild(group);
       inGrpXdiff = 0;
     }
@@ -68,6 +71,7 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
     inGrpXdiff += chr.hadv;
   }
 
+  svg.style.setProperty("--grp-cnt", grpCnt.toString());
   svg.appendChild(root);
   return [svg, xdiff];
 }
