@@ -3,7 +3,7 @@ import { apply as applyStatic } from "./static";
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
-import { renderLine } from "./font";
+import { relayoutLine, renderLine } from "./font";
 import { jsx } from "./jsx";
 import * as Icons from "./icons";
 
@@ -155,7 +155,7 @@ async function reflection(path: String, activator: EventTarget | null = null) {
 
   // Render post
   if(state.ty === 'Post') {
-    const slug = state.slug; // Workaround typechecker
+    const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
     const post = data.find(p => p.metadata.id === slug)!;
     let renderedTitle: SVGSVGElement | null = null;
     if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
@@ -205,10 +205,10 @@ class List implements RenderedEntity {
     });
     const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
-    const [line, lineWidth] = renderLine(post.metadata.title_outline);
+    const line = renderLine(post.metadata.title_outline);
+    relayoutLine(line, 650 / 24); // TODO: don't hard-code
     return <div class="entry">
       <div class="entry-title" style={{
-        '--full-width': lineWidth,
       }}>
         {line}
         <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>{post.metadata.title}</a>
@@ -237,9 +237,10 @@ class Post implements RenderedEntity {
   observer: IntersectionObserver;
 
   constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
-    const [title, titleWidth] = renderLine(post.metadata.title_outline);
+    const title = renderLine(post.metadata.title_outline);
+    relayoutLine(title, 650 / 48);
     title.classList.add('post-title');
-    title.style.setProperty('--full-width', titleWidth.toString());
+    // title.style.setProperty('--full-width', titleWidth.toString());
 
     renderedTitle?.style.setProperty('opacity', '0');
 
@@ -287,7 +288,9 @@ class Post implements RenderedEntity {
     };
 
     const metadata = genMetadata('post-metadata', []);
-    const [auxTitle, auxTitleWidth] = renderLine(post.metadata.title_outline);
+    const auxTitle = renderLine(post.metadata.title_outline);
+    relayoutLine(auxTitle, 200 / 16); // TODO: don't hard-code
+
     const auxMetadata = genMetadata('post-metadata-aux', [
       auxTitle
     ]);
@@ -376,6 +379,8 @@ class Post implements RenderedEntity {
         grp.style.setProperty('--scroll', '0');
         const curLoc = grp.getBoundingClientRect();
         const refLoc = r.getBoundingClientRect();
+        console.log(curLoc, refLoc);
+
         grp.style.removeProperty('--scroll');
         return {
           dx: refLoc.x - curLoc.x,
@@ -386,15 +391,21 @@ class Post implements RenderedEntity {
     }
 
     let pastXVar = 0;
+    let lastLine = 0;
 
     grps.forEach((grp, i) => {
+      const curLine = parseInt(grp.style.getPropertyValue('--grp-line'));
+      if(curLine !== lastLine) {
+        pastXVar = 0;
+        lastLine = curLine;
+      }
+
       const scale = randomWithin(0.9, 1.2);
       grp.style.setProperty('--var-scale', scale.toString());
       grp.style.setProperty('--var-offset-x', pastXVar + 'px');
       grp.style.setProperty('--var-offset-y', randomWithin(-0.1, 0.1) + 'px');
 
       const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-approx-width'));
-      const grpXdiff = parseFloat(grp.style.getPropertyValue('--grp-xdiff'));
 
       pastXVar += grpWidth * (scale - 1);
 
@@ -403,8 +414,9 @@ class Post implements RenderedEntity {
           {
             transform: `
               translate(${deltas[i].dx}px, ${deltas[i].dy}px)
+              translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
               scale(var(--size))
-              translateX(var(--grp-xdiff))
+              translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
               scale(${deltas[i].scale})
             `,
           },

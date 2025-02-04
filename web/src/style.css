@@ -219,7 +219,41 @@ root {
   }
 }
 
-/* List & Title */
+/* Title */
+
+.title {
+  /* transform-style: preserve-3d; */
+
+  /* Default value for line-height */
+
+  width: calc(var(--optical-width) * var(--size) * 1px);
+  height: calc(var(--line-cnt) * var(--line-height));
+
+  & .var-group {
+    transform-origin: 0 0;
+    /*
+     * Remember to sync the following declaration to .post-title,
+     * .post-metadata-aux .title, and also applyTitleVariation !
+     */
+    transform:
+      translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
+      scale(var(--size))
+      translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
+  }
+
+  & .glyph {
+    transform: translateX(var(--in-grp-xdiff));
+  }
+
+  & path {
+    transform-origin: 0 0;
+  }
+
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* List */
 
 .list {
   position: absolute;
@@ -237,10 +271,10 @@ root {
 .entry-title {
   --size: 24;
   --baseline-y: 30px;
-  width: calc(var(--size) * var(--full-width) * 1px);
-  height: 40px;
+  --line-height: 40px;
   margin-bottom: 10px;
   position: relative;
+  width: min-content;
 }
 
 .entry-title-tangible {
@@ -272,35 +306,6 @@ root {
   }
 }
 
-.entry-title .title {
-  width: 100%;
-  height: 40px;
-}
-
-.title {
-  /* transform-style: preserve-3d; */
-
-  & .line {
-    transform: translateY(var(--baseline-y))
-  }
-
-  & .var-group {
-    transform-origin: 0 0;
-    transform: scale(var(--size)) translateX(var(--grp-xdiff));
-  }
-
-  & .glyph {
-    transform: translateX(var(--in-grp-xdiff));
-  }
-
-  & path {
-    transform-origin: 0 0;
-  }
-
-  pointer-events: none;
-  overflow: visible;
-}
-
 /* Posts */
 .post {
   position: absolute;
@@ -311,19 +316,19 @@ root {
 .post-title {
   --size: 48;
   --baseline-y: 48px;
+  --line-height: 48px;
   position: fixed;
   bottom: 50vh;
   left: 50vw;
   transform: translateX(-50%);
-  height: 60px;
-  width: calc(var(--full-width) * var(--size) * 1px);
   pointer-events: all;
 
   & .var-group {
     transform:
+      translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
       translateY(calc(0px - 1px * var(--scroll) * (var(--var-scale) + 1.5) / 2))
       scale(var(--size))
-      translateX(var(--grp-xdiff))
+      translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
       translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
       scale(var(--var-scale, 1));
 
@@ -388,9 +393,9 @@ root {
   }
 
   & .title {
-    height: 24px;
     --baseline-y: 18px;
     --size: 16;
+    --line-height: 24px;
     margin-bottom: 10px;
   }
 
@@ -414,7 +419,11 @@ root {
       }
       & .title .var-group {
         opacity: 0;
-        transform: translateX(-5px) scale(var(--size)) translateX(var(--grp-xdiff));
+        transform:
+          translateX(-5px)
+          translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
+          scale(var(--size))
+          translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
       }
     }
   }

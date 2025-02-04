@@ -7,7 +7,66 @@ function generateVarGroup(xdiff: number): SVGGElement {
   return g;
 }
 
-export function renderLine(line: TitleResp): [SVGSVGElement, number] {
+type RenderDimensions = {
+  totalWidth: number;
+  opticalWidth: number;
+  lineCnt: number;
+}
+
+// TODO(perf): cache width with WeakMap
+export function relayoutLine(svg: SVGSVGElement, maxWidth: number = Infinity): RenderDimensions {
+  if(maxWidth <= 0) throw new Error("maxWidth must be positive");
+
+  const grps = svg.querySelectorAll('.var-group') as NodeListOf<SVGGElement>;
+  let line = 0;
+  let lineWidth = 0;
+  let maxLineWidth = 0;
+  let totWidth = 0;
+
+  for(const g of grps) {
+    const approxWidth = parseFloat(g.style.getPropertyValue('--grp-approx-width'));
+    const text = g.getAttribute('data-text');
+    totWidth += approxWidth;
+
+    let spaceOnly = text && text.match(/^ *$/);
+
+    let overflowed = lineWidth + approxWidth > maxWidth;
+    // Under two conditions, the overflow is ignored:
+    // 1. The line is empty
+    if(lineWidth === 0) overflowed = false;
+    // 2. The group is space-only
+    if(spaceOnly) overflowed = false;
+
+    if(overflowed) {
+      ++line;
+      lineWidth = 0;
+    }
+    g.style.setProperty('--grp-line', line.toString());
+    g.style.setProperty('--grp-line-xdiff', lineWidth.toString() + 'px');
+    lineWidth += approxWidth;
+
+    if(!spaceOnly)
+      maxLineWidth = Math.max(maxLineWidth, lineWidth);
+  }
+
+  svg.style.setProperty('--line-cnt', (line + 1).toString());
+  svg.style.setProperty('--optical-width', maxLineWidth.toString());
+
+  return {
+    totalWidth: totWidth,
+    opticalWidth: maxLineWidth,
+    lineCnt: line + 1,
+  }
+}
+
+function isContinous(thunk: string, incoming: string): boolean {
+  if(incoming === ' ') return !!thunk.match(/^ +$/);
+  else if(thunk.match(/[0-9]/)) return !!thunk.match(/^[0-9]+$/);
+  else if(thunk.match(/[a-zA-Z]/)) return !!thunk.match(/^[a-zA-Z]+$/);
+  else return false;
+}
+
+export function renderLine(line: TitleResp): SVGSVGElement {
   // FIXME: wrap
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const root = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -20,6 +79,7 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
   let xdiff = 0;
   let inGrpXdiff = 0;
   let grpCnt = 0;
+  let grpThunk = '';
   for(const chr of line.chars) {
     const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
 
@@ -54,24 +114,34 @@ export function renderLine(line: TitleResp): [SVGSVGElement, number] {
     }
     g.classList.add('glyph');
 
-    const keep = group !== null && !!chr.char.match(/[a-zA-Z0-9]/);
+    const keep = group !== null && isContinous(grpThunk, chr.char);
     if(!keep) {
-      if(group) group.style.setProperty('--grp-approx-width', inGrpXdiff.toString());
+      if(group) {
+        group.style.setProperty('--grp-approx-width', inGrpXdiff.toString());
+        group.setAttribute('data-text', grpThunk);
+      }
       group = generateVarGroup(xdiff);
       group.style.setProperty('--grp-id', grpCnt.toString());
       ++grpCnt;
       root.appendChild(group);
       inGrpXdiff = 0;
+      grpThunk = '';
     }
 
     g.style.setProperty('--in-grp-xdiff', inGrpXdiff.toString() + 'px');
     group!.appendChild(g);
+    grpThunk += chr.char;
 
     xdiff += chr.hadv;
     inGrpXdiff += chr.hadv;
   }
 
+  if(group) {
+    group.style.setProperty('--grp-approx-width', inGrpXdiff.toString());
+    group.setAttribute('data-text', grpThunk);
+  }
+
   svg.style.setProperty("--grp-cnt", grpCnt.toString());
   svg.appendChild(root);
-  return [svg, xdiff];
+  return svg;
 }
