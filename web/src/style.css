@@ -401,14 +401,22 @@ nav {
   position: absolute;
   width: 100%;
   top: 0;
+
+  --title-line-height: 60px;
+  --title-line-cnt: 1;
+  --post-top-gutter: clamp(
+    calc(120px + var(--title-line-height) * var(--title-line-cnt)),
+    50vh,
+    calc(240px + var(--title-line-height) * var(--title-line-cnt))
+  );
 }
 
 .post-title {
   --size: 48;
   --baseline-y: 48px;
-  --line-height: 60px;
+  --line-height: var(--title-line-height);
   position: absolute;
-  top: 50vh;
+  top: var(--post-top-gutter);
   left: 50%;
   transform: translateX(-50%) translateY(-100%);
   pointer-events: all;
@@ -436,12 +444,12 @@ nav {
 }
 
 .post-content-wrapper {
-  margin-top: calc(50vh + 100px);
+  margin-top: calc(var(--post-top-gutter) + 100px);
   padding: 0px 240px 60px 240px;
   position: relative;
 
   @media (max-width: 1150px) {
-    padding: 0px 60px 60px 240px;
+    padding: 0px 0px 60px 240px;
   }
 
   @media (max-width: 800px) {
