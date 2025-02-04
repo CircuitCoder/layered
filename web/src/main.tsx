@@ -199,7 +199,7 @@ class List implements RenderedEntity {
   }
 
   private static renderEntry(post: PostData): HTMLElement {
-    const dispTime = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
+    const dispTime = Temporal.Instant.from(post.metadata.publish_time);
     const dispDate = dispTime.toLocaleString(preferredLocale, {
       dateStyle: 'medium',
     });
@@ -292,18 +292,23 @@ class Post implements RenderedEntity {
       auxTitle
     ]);
 
+    const contentWrapper = 
+      <div class="post-content-wrapper">
+        {metadata}
+        {content}
+      </div>;
+
     this.element = <div class="post">
       {title}
-      {metadata}
       {auxMetadata}
-      <div class="post-content-wrapper">{content}</div>
+      {contentWrapper}
     </div>;
 
     document.getElementById('root')!.appendChild(this.element);
 
     Post.applyTitleVariation(title, renderedTitle);
     if(!renderedTitle) Post.applyTitleFreeAnimation(title, true);
-    content.animate([
+    contentWrapper.animate([
       {
         opacity: 0,
         transform: 'translateY(5px)',
@@ -332,7 +337,7 @@ class Post implements RenderedEntity {
     freezeScroll(el);
     const title = el.querySelector('.post-title') as SVGSVGElement;
     const titleRemoved = Post.applyTitleFreeAnimation(title, false);
-    const content = el.querySelector('.post-content') as HTMLElement;
+    const content = el.querySelector('.post-content-wrapper') as HTMLElement;
     const contentRemoved = content.animate([
       {},
       {
