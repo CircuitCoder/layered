@@ -7,9 +7,8 @@ import { relayoutLine, renderLine } from "./font";
 import { jsx } from "./jsx";
 import * as Icons from "./icons";
 
-import * as CONFIG from "./config";
-
 import { Temporal } from "@js-temporal/polyfill";
+import 'giscus';
 
 /**
  * Application bootstrap
@@ -299,6 +298,23 @@ class Post implements RenderedEntity {
       <div class="post-content-wrapper">
         {metadata}
         {content}
+        <div class="post-comments">
+          <giscus-widget
+              repo="CircuitCoder/layered"
+              repoid="R_kgDOGW5ewA"
+              category="Comments"
+              categoryid="DIC_kwDOGW5ewM4Cmogr"
+              mapping="specific"
+              term={post.metadata.title}
+              strict="1"
+              reactionsenabled="1"
+              emitmetadata="1"
+              inputposition="top"
+              theme="light" // TODO: change me when introducing dark mode
+              lang={preferredLocale}
+              loading="lazy"
+          ></giscus-widget>
+        </div>
       </div>;
 
     this.element = <div class="post">

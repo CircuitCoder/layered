@@ -5,7 +5,8 @@
 - [ ] Dark mode
 - [ ] Responsive
 - [ ] RSS
-- [ ] Comment section
+- [ ] OpenGraph
+- [x] Comment section
 - [ ] Tag
 - [ ] Search
 - [ ] Math and code highlight

@@ -433,6 +433,11 @@ root {
   font-family: monospace;
 }
 
+.post-comments {
+  max-width: 600px;
+  margin: 60px auto 0 auto;
+}
+
 /* Content */
 blockquote {
   border-left: rgba(0,0,0,.3) 10px solid;

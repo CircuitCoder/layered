@@ -2,8 +2,6 @@
  * Pure static HTML contents
  */
 
-import * as CONFIG from "./config";
-
 import { jsxSVG as jsx } from "./jsx";
 
 const SQRT3 = Math.sqrt(3);
