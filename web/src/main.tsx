@@ -171,6 +171,8 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     }
     rendered = new Post(post, renderedTitle);
   }
+
+  // TODO: title
 }
 
 function freezeScroll(el: HTMLElement) {
@@ -302,6 +304,9 @@ class Post implements RenderedEntity {
       auxTitle
     ]);
 
+    const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const discusTheme = darkMode ? 'dark_dimmed' : 'light';
+
     const contentWrapper = 
       <div class="post-content-wrapper">
         {metadata}
@@ -318,7 +323,7 @@ class Post implements RenderedEntity {
               reactionsenabled="1"
               emitmetadata="1"
               inputposition="top"
-              theme="light" // TODO: change me when introducing dark mode
+              theme={discusTheme} // TODO: change me when introducing dark mode override
               lang={preferredLocale}
               loading="lazy"
           ></giscus-widget>
@@ -356,6 +361,9 @@ class Post implements RenderedEntity {
       }
     });
     this.observer.observe(metadata);
+
+    // TODO: giscus backlink
+    // TODO: opengraph
   }
 
   async exit() {
@@ -403,7 +411,6 @@ class Post implements RenderedEntity {
         grp.style.setProperty('--scroll', '0');
         const curLoc = grp.getBoundingClientRect();
         const refLoc = r.getBoundingClientRect();
-        console.log(curLoc, refLoc);
 
         grp.style.removeProperty('--scroll');
         return {

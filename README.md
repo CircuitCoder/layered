@@ -2,7 +2,7 @@
 
 - [x] Basic list rendering, post rendering, history API
   - [ ] Scroll restoration
-- [ ] Dark mode
+- [x] Dark mode
 - [ ] Responsive
 - [ ] RSS
 - [ ] OpenGraph
@@ -15,6 +15,8 @@
 - [ ] SSR (basically preload all inline HTMLs)
 - [ ] Service worker
 - [ ] Accessibility
+  - [ ] aria tags
+  - [ ] reduced motion
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
   - [ ] `content-visibility: auto;` and on-demand canvas rendering

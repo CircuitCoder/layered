@@ -33,13 +33,13 @@ button {
 
 a {
   text-decoration: none;
-  border-bottom: 1px dashed rgba(0,0,0,.3);
+  border-bottom: 1px dashed var(--color-fg-icon);
   color: oklab(0.7 0 -0.1);
 }
 
 /* Root */
 
-root {
+:root {
   font-family: "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
   color-scheme: light dark;
 
@@ -48,10 +48,36 @@ root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --color-bg: white;
+  /* Default for light stuff */
+  --color-bg: #FFF;
+  --color-fg: #000;
+  --color-fg-secondary: oklab(0.3 0 0);
+  --color-fg-icon: oklab(0.7 0 0);
+
+  --shard-lightness-1: 0.9;
+  --shard-lightness-2: 0.7;
+  --shard-lightness-3: 0.4;
+  --shard-lightness-docked: 0.4;
+
+  @media (prefers-color-scheme: dark) {
+    &:not(.light) {
+      --color-bg: #2e2f33;
+      --color-fg: oklab(0.95 0 0);
+      --color-fg-secondary: oklab(0.8 0 0);
+      --color-fg-icon: oklab(0.6 0 0);
+
+      --shard-lightness-1: 0.4;
+      --shard-lightness-2: 0.7;
+      --shard-lightness-3: 0.9;
+      --shard-lightness-docked: 0.9;
+    }
+  }
 
   overflow-y: scroll;
   overflow-x: hidden;
+
+  background: var(--color-bg);
+  color: var(--color-fg);
 }
 
 #scroll-sentinel {
@@ -82,13 +108,14 @@ root {
   & > .logo-shards-container {
     filter: drop-shadow(0 var(--shadow) calc(var(--shadow) * 1.5) rgba(0, 0, 0, 0.3));
     & > use {
-      transition: fill .2s ease, transform .2s ease;
+      transition: filter .2s ease, transform .2s ease;
+      fill: white;
     }
   }
 
   & > .logo-shards-container:nth-last-child(1) {
     & > use {
-      fill: oklab(var(--shard-lightness-1) 0 0);
+      filter: brightness(var(--shard-lightness-1));
     }
   }
 
@@ -122,7 +149,7 @@ root {
         calc(2 * var(--distance) + var(--startup-offset) / 1.5),
         var(--distance)
       ));
-      fill: oklab(var(--shard-lightness-2) 0 0);
+      filter: brightness(var(--shard-lightness-2));
     }
   }
 
@@ -132,7 +159,7 @@ root {
         calc(2 * var(--distance) + var(--startup-offset) / 1.5),
         0px
       ));
-      fill: oklab(var(--shard-lightness-3) 0 0);
+      filter: brightness(var(--shard-lightness-3));
     }
   }
 }
@@ -154,7 +181,6 @@ root {
   font-size: 12px;
   line-height: 20px;
   user-select: none;
-  color: black;
   display: flex;
   align-items: center;
 
@@ -212,7 +238,7 @@ root {
   z-index: 1;
 
   & a {
-    color: black;
+    color: var(--color-fg);
     line-height: 20px;
     font-size: 16px;
     display: inline-flex;
@@ -233,10 +259,10 @@ root {
 .title {
   /* transform-style: preserve-3d; */
 
-  /* Default value for line-height */
-
   width: calc(var(--optical-width) * var(--size) * 1px);
   height: calc(var(--line-cnt) * var(--line-height));
+
+  fill: var(--color-fg);
 
   & .var-group {
     transform-origin: 0 0;
@@ -301,7 +327,7 @@ root {
 
 .entry-time {
   font-size: 14px;
-  color: rgba(0,0,0,.7);
+  color: var(--color-fg-secondary);
   line-height: 24px;
   display: flex;
   justify-content: flex-start;
@@ -311,7 +337,7 @@ root {
     height: 16px;
     width: 16px;
     margin-left: 5px;
-    fill: rgba(0,0,0,.3);
+    fill: var(--color-fg-icon);
   }
 }
 
@@ -335,14 +361,14 @@ root {
   & .var-group {
     transform:
       translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
-      translateY(calc(0px - 1px * var(--scroll) * (var(--var-scale) + 1.5) / 2))
+      translateY(calc(0px - 1px * var(--scroll, 0) * (var(--var-scale) + 1.5) / 2))
       scale(var(--size))
       translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
       translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
       scale(var(--var-scale, 1));
 
-    filter: blur(calc(1px * var(--scroll) * (var(--var-scale) - 0.7) / 500));
-    opacity: calc(1 - var(--scroll) * (var(--var-scale) - 0.5) / 200);
+    filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 500));
+    opacity: calc(1 - var(--scroll, 0) * (var(--var-scale) - 0.5) / 200);
   }
 }
 
@@ -367,7 +393,7 @@ root {
 
   & svg:not(.title) {
     height: 18px;
-    fill: rgba(0,0,0,.5);
+    fill: var(--color-fg-icon);
   }
 
   font-size: 14px;
@@ -484,7 +510,7 @@ root.initial {
       }
 
       > use {
-        transition: fill .2s ease;
+        transition: filter .2s ease;
       }
     }
   }
@@ -522,9 +548,6 @@ root.banner {
     --distance: 20px;
     --shadow: 2px;
     
-    --shard-lightness-1: 0.9;
-    --shard-lightness-2: 0.7;
-    --shard-lightness-3: 0.4;
     opacity: 1;
   }
 }
@@ -577,9 +600,9 @@ root.header {
     --distance: 30px;
     --shadow: 0;
     
-    --shard-lightness-1: 0.4;
-    --shard-lightness-2: 0.4;
-    --shard-lightness-3: 0.4;
+    --shard-lightness-1: var(--shard-lightness-docked);
+    --shard-lightness-2: var(--shard-lightness-docked);
+    --shard-lightness-3: var(--shard-lightness-docked);
     opacity: 1;
     transform: scale(.5);
     cursor: default;
