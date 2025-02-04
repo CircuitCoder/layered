@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
     <title>Layered</title>
   </head>
   <body>
@@ -10,19 +10,22 @@
       <div id="scroll-sentinel"></div>
       <nav>
         <svg viewbox="0 0 160 100" id="logo"><!-- logo --></svg>
-        <div id="lang-sel">
-          <button id="lang-zh">中</button>
-          <span>/</span>
-          <button id="lang-en">EN</button>
-        </div>
         <h1 id="brand">
           <span>分层</span>
         </h1>
-        <ul id="nav">
-          <a href="/about">关于</a>
-          <a href="/tags">标签</a>
-          <a href="/search">搜索</a>
-        </ul>
+
+        <div id="nav-right">
+          <div id="lang-sel">
+            <button id="lang-zh">中</button>
+            <span>/</span>
+            <button id="lang-en">EN</button>
+          </div>
+          <ul id="nav">
+            <a href="/about">关于</a>
+            <a href="/tags">标签</a>
+            <a href="/search">搜索</a>
+          </ul>
+        </div>
       </nav>
     </root>
     <link rel="stylesheet" href="/src/style.css" />

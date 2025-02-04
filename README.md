@@ -4,6 +4,7 @@
   - [ ] Scroll restoration
 - [x] Dark mode
 - [ ] Responsive
+- [ ] Fill in the about page
 - [ ] RSS
 - [ ] OpenGraph
 - [x] Comment section

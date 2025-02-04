@@ -1,5 +1,15 @@
+/*
+ * Rsponsive breakpoints:
+ * 1150px > 600px (post width) + 240px * 2 (side margin) + 30px (scrollbar leeway) for widescreen
+ *   Widescreen has globally-centered posts
+ * 800 for landscape tablets
+ *   Landscape tablet has sideway centered posts
+ *   A in-between breakpoint = 950px is used to tune down post width 600px -> 450px
+ */
+
 /* Typed custom properties */
 
+/* Allow --startup-offset to be animated */
 @property --startup-offset {
   syntax: '<length>';
   inherits: true;
@@ -101,7 +111,7 @@ a {
   width: 160px;
   height: 100px;
 
-  z-index: 1;
+  z-index: 10;
 }
 
 #logo-shards {
@@ -171,10 +181,10 @@ a {
 
 #lang-sel {
   position: fixed;
-  top: 35px;
-  left: 110px;
+  top: 55px;
+  left: 200px;
 
-  z-index: 1;
+  z-index: 10;
 
   transition: transform .2s ease;
 
@@ -223,19 +233,54 @@ a {
   }
 }
 
+/* Not to be confused with #nav the nav list */
+nav {
+  width: 100%;
+}
+
+@media (max-width: 800px) {
+  nav {
+    &::after {
+      content: "";
+      position: fixed;
+      opacity: 1;
+      width: 100vw;
+      height: 80px;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: var(--color-bg);
+      box-shadow: 0 2px 3px rgba(0,0,0,.3);
+      border-bottom: rgba(0,0,0,.3) 5px solid;
+      transition: opacity .2s ease;
+      z-index: 1;
+    }
+  }
+}
+
+/*
+ * The float-right parts of nav during narrow screen
+ * This is used to apply a translate to conteract the scrollbar width
+ */
+#nav-right {
+  position: fixed;
+  width: 100%;
+  transition: transform .2s ease;
+  z-index: 10;
+}
+
 #nav {
   padding: 0;
   position: fixed;
-  left: 40px;
-  top: 80px;
-  transform: scale(.75);
+  left: 200px;
+  top: 130px;
   transform-origin: 0 0;
 
   transition: transform .2s ease;
 
   margin: 0;
   line-height: 36px;
-  z-index: 1;
+  z-index: 10;
 
   & a {
     color: var(--color-fg);
@@ -244,6 +289,10 @@ a {
     display: inline-flex;
     align-items: center;
     margin-right: 10px;
+
+    &:last-child {
+      margin-right: 0;
+    }
 
     &::before {
       content: ">";
@@ -293,9 +342,15 @@ a {
 .list {
   position: absolute;
   top: 0;
-  padding-top: 250px;
   left: 200px;
   width: calc(100% - 200px);
+  padding: 250px 60px 0 0;
+
+  @media (max-width: 800px) {
+    left: 0;
+    width: 100%;
+    padding: 250px 60px 0 60px;
+  }
 }
 
 .entry {
@@ -352,16 +407,24 @@ a {
   --size: 48;
   --baseline-y: 48px;
   --line-height: 60px;
-  position: fixed;
-  bottom: 50vh;
-  left: 50vw;
-  transform: translateX(-50%);
+  position: absolute;
+  top: 50vh;
+  left: 50%;
+  transform: translateX(-50%) translateY(-100%);
   pointer-events: all;
+
+  @media (max-width: 1150px) {
+    transform: translateX(100px) translateX(-50%) translateY(-100%);
+  }
+
+  @media (max-width: 800px) {
+    transform: translateX(-50%) translateY(-100%);
+  }
 
   & .var-group {
     transform:
       translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
-      translateY(calc(0px - 1px * var(--scroll, 0) * (var(--var-scale) + 1.5) / 2))
+      translateY(calc(0px - 1px * var(--scroll, 0) * (var(--var-scale) - 0.5) / 2))
       scale(var(--size))
       translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
       translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
@@ -376,10 +439,21 @@ a {
   margin-top: calc(50vh + 100px);
   padding: 0px 240px 60px 240px;
   position: relative;
+
+  @media (max-width: 1150px) {
+    padding: 0px 60px 60px 240px;
+  }
+
+  @media (max-width: 800px) {
+    padding: 0px 60px 60px 60px;
+  }
 }
 
 .post-content {
   max-width: 600px;
+  @media (max-width: 950px) {
+    max-width: 450px;
+  }
   margin: 0 auto;
   font-size: 16px;
   line-height: 28px;
@@ -407,8 +481,17 @@ a {
   right: 0;
   top: -80px; /* .post-content-wrapper was 50vh + 100px */
 
+  @media (max-width: 1150px) {
+    left: 200px;
+  }
+
+  @media (max-width: 800px) {
+    left: 0;
+  }
+
   display: flex;
   justify-content: center;
+
 
   & .post-metadata-line {
     margin-right: 10px;
@@ -423,6 +506,20 @@ a {
   display: block;
   z-index: 1;
 
+  @media (max-width: 800px) {
+    top: 0;
+    left: 100px;
+    height: 80px;
+    width: calc(100% - 260px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    & .post-metadata-line {
+      display: none;
+    }
+  }
+
   & .post-metadata-line {
     margin-bottom: 5px;
   }
@@ -432,6 +529,11 @@ a {
     --size: 16;
     --line-height: 24px;
     margin-bottom: 10px;
+
+    @media (max-width: 800px) {
+      margin-bottom: 0;
+      margin-right: 10px;
+    }
   }
 
   & .post-metadata-line, & .title .var-group {
@@ -471,6 +573,10 @@ a {
 .post-comments {
   max-width: 600px;
   margin: 60px auto 0 auto;
+
+  @media (max-width: 950px) {
+    max-width: 450px;
+  }
 }
 
 /* Content */
@@ -531,12 +637,10 @@ root.banner {
 
   & #lang-sel {
     opacity: 1;
-    transform: translate(90px, 20px);
   }
 
   & #nav {
     opacity: 1;
-    transform: translate(160px, 50px);
   }
 
   & #brand {
@@ -549,6 +653,11 @@ root.banner {
     --shadow: 2px;
     
     opacity: 1;
+  }
+
+  & nav::after {
+    opacity: 0;
+    pointer-events: none;
   }
 }
 
@@ -563,12 +672,12 @@ root.banner-trigger {
   }
 
   & #lang-sel {
-    transform: translateY(5px) translate(90px, 20px);
+    transform: translateY(5px);
     opacity: 0;
   }
 
   & #nav {
-    transform: translateY(-5px) translate(160px, 50px);
+    transform: translateY(-5px);
     opacity: 0;
   }
 
@@ -581,12 +690,28 @@ root.banner-trigger {
 root.header {
   --startup-offset: 0;
 
+  #nav-right {
+    @media (max-width: 800px) {
+      transform: translate(calc(100% - 100vw));
+    }
+  }
+
   & #lang-sel {
     opacity: 1;
+    transform: translate(-90px, -20px);
+
+    @media (max-width: 800px) {
+      transform: translate(-100%, 0) translateX(100vw) translate(-220px, -40px);
+    }
   }
 
   & #nav {
     opacity: 1;
+    transform: translate(-160px, -50px) scale(.75);
+
+    @media (max-width: 800px) {
+      transform: translate(-80%, -80%) translateX(100vw) translate(-220px, -65px) scale(.8);
+    }
   }
 
   & #brand {
@@ -606,6 +731,10 @@ root.header {
     opacity: 1;
     transform: scale(.5);
     cursor: default;
+
+    @media (max-width: 800px) {
+      transform: translate(-15px, -15px) scale(.5);
+    }
 
     &:has(.logo-shards-container:hover) {
       --distance: 35px;

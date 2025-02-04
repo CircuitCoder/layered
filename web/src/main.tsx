@@ -215,7 +215,7 @@ class List implements RenderedEntity {
     const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
     const line = renderLine(post.metadata.title_outline);
-    relayoutLine(line, 650 / 24); // TODO: don't hard-code
+    relayoutLine(line, 600 / 24); // TODO: don't hard-code
     return <div class="entry">
       <div class="entry-title" style={{
       }}>
@@ -247,7 +247,7 @@ class Post implements RenderedEntity {
 
   constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
     const title = renderLine(post.metadata.title_outline);
-    relayoutLine(title, 650 / 48, true);
+    relayoutLine(title, 600 / 48, true);
     title.classList.add('post-title');
     // title.style.setProperty('--full-width', titleWidth.toString());
 
