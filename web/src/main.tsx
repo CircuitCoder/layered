@@ -107,7 +107,8 @@ function scroll() {
 function updateBannerClass(given?: State): string {
   const used = given ?? state;
   const root = document.getElementById('root')!;
-  const targetClass = onTop && used.ty === 'Home' ? 'banner' : 'header';
+  const bannerMode = used.ty === 'About' || onTop && used.ty === 'Home';
+  const targetClass = bannerMode ? 'banner' : 'header';
   if(root.classList.contains(targetClass)) return targetClass;
 
   // Also remove initial. All banner state changes during initial immediately halts the startup animation
@@ -141,17 +142,22 @@ async function reflection(path: String, activator: EventTarget | null = null) {
 
   // TODO: Verify existence, or instead use 404
 
-  // TODO: delay startup animiation class detection after content is rendered, s.t. scroll is correctly reflected
-  // Or give a min-height 101vh during startup to see if the stored scroll is not a top
-  const cn = updateBannerClass(newState);
-  if(oldState.ty === 'Vacant') startup(cn);
-
   if(rendered !== null) {
     rendered.exit();
     rendered = null;
   }
 
   window.scrollTo(0, 0);
+
+  await nextTick();
+
+  // TODO: delay startup animiation class detection after content is rendered, s.t. scroll is correctly reflected
+  // Or give a min-height 101vh during startup to see if the stored scroll is not a top
+  const cn = updateBannerClass(newState);
+  if(oldState.ty === 'Vacant') startup(cn);
+
+  const root = document.getElementById('root')!;
+  root.setAttribute('data-view', newState.ty.toLowerCase());
 
   // All transitions require fetching all data, so we wait on that
   const data = await getData();
@@ -179,6 +185,13 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     rendered = new Post(post, renderedTitle);
   }
 
+  // Init about components
+  if(state.ty === 'About') {
+    initAboutGiscus();
+    title = '关于 | 分层 - Layered';
+    backlink = CONFIG.BASE + '/about';
+  }
+
   // TODO: use special procedure during SSR
   document.title = title;
   if(backlink) {
@@ -198,6 +211,29 @@ function freezeScroll(el: HTMLElement) {
   el.style.setProperty('top', `-${scrollY}px`);
   // Override --scroll variable
   el.style.setProperty('--scroll', `${scrollY}`);
+}
+
+function renderGiscus(title: string): HTMLElement {
+  const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const discusTheme = darkMode ? 'dark_dimmed' : 'light';
+
+  return (
+    <giscus-widget
+      repo="CircuitCoder/layered"
+      repoid="R_kgDOGW5ewA"
+      category="Comments"
+      categoryid="DIC_kwDOGW5ewM4Cmogr"
+      mapping="specific"
+      term={title}
+      strict="1"
+      reactionsenabled="1"
+      emitmetadata="1"
+      inputposition="top"
+      theme={discusTheme} // TODO: change me when introducing dark mode override
+      lang={preferredLocale}
+      loading="lazy"
+    ></giscus-widget>
+  )
 }
 
 /**
@@ -343,29 +379,12 @@ class Post implements RenderedEntity {
       auxTitle
     ]);
 
-    const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const discusTheme = darkMode ? 'dark_dimmed' : 'light';
-
     const contentWrapper = 
       <div class="post-content-wrapper">
         {metadata}
         {content}
         <div class="post-comments">
-          <giscus-widget
-              repo="CircuitCoder/layered"
-              repoid="R_kgDOGW5ewA"
-              category="Comments"
-              categoryid="DIC_kwDOGW5ewM4Cmogr"
-              mapping="specific"
-              term={post.metadata.title}
-              strict="1"
-              reactionsenabled="1"
-              emitmetadata="1"
-              inputposition="top"
-              theme={discusTheme} // TODO: change me when introducing dark mode override
-              lang={preferredLocale}
-              loading="lazy"
-          ></giscus-widget>
+          {renderGiscus(post.metadata.title)}
         </div>
       </div>;
 
@@ -514,7 +533,6 @@ class Post implements RenderedEntity {
 
   private static async applyTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
     const strokes = Array.from(title.querySelectorAll('g.var-group path')) as SVGPathElement[];
-    let minX: number | null = null;
     const promises = strokes.map((stroke, _i) => {
       const bbox = stroke.getBoundingClientRect();
       const parentBbox = stroke.parentElement!.getBoundingClientRect();
@@ -542,6 +560,13 @@ class Post implements RenderedEntity {
 
     await Promise.all(promises);
   }
+}
+
+// About rendering is benign
+function initAboutGiscus() {
+  const container = document.getElementById('about-giscus')!;
+  if(container.childElementCount > 0) return;
+  container.appendChild(renderGiscus("关于"));
 }
 
 document.addEventListener('DOMContentLoaded', bootstrap);

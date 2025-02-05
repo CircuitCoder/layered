@@ -21,4 +21,4 @@
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
   - [ ] `content-visibility: auto;` and on-demand canvas rendering
-  - [ ] Title line wrap
+  - [x] Title line wrap
