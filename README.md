@@ -10,20 +10,21 @@
   - [ ] Scroll restoration
 - [x] Dark mode
 - [x] Responsive
-- [ ] Fill in the about page
+- [x] Fill in the about page
 - [ ] RSS
 - [ ] OpenGraph
 - [x] Comment section
 - [ ] Tag
 - [ ] Search
-- [ ] Math and code highlight
-- [ ] Typst
+- [ ] Code highlight
 - [ ] Translations
 - [ ] SSR (basically preload all inline HTMLs)
 - [ ] Service worker
 - [ ] Accessibility
   - [ ] aria tags
   - [ ] reduced motion
+- [ ] Math
+- [ ] Typst
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
   - [ ] `content-visibility: auto;` and on-demand canvas rendering
