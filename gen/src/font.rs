@@ -61,15 +61,14 @@ impl OutlineCmd {
         }
     }
 
-    pub fn is_outside(&self, path: impl Iterator<Item = PathEvent>) -> bool {
+    pub fn may_be_inside(&self, path: impl Iterator<Item = PathEvent>) -> bool {
         match self.dst_pt() {
-            None => false,
-            // TODO: change tolerance
+            None => true,
             Some((x, y)) => lyon_algorithms::hit_test::hit_test_path(
                 &(x as f32, y as f32).into(),
                 path,
                 lyon_path::FillRule::EvenOdd,
-                1e-2,
+                1e-5,
             )
         }
     }
@@ -265,13 +264,13 @@ pub fn split_components(input: Outline) -> Vec<Outline> {
             if i == j {
                 continue;
             }
-            log::debug!("Testing {} contained in {}", i, j);
 
             // TODO: change tolerance?
             let i_inside_j = loops[i]
                 .iter()
-                .all(|cmd| !cmd.is_outside(component_to_lyon_path_ev(loops[j].iter().cloned())));
+                .all(|cmd| cmd.may_be_inside(component_to_lyon_path_ev(loops[j].iter().cloned())));
             if i_inside_j {
+                log::debug!("Split: {} contained in {}", i, j);
                 inside[i].insert(j);
             }
         }
@@ -389,7 +388,7 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
         return a_bbox.min.x.partial_cmp(&b_bbox.min.x).unwrap();
     });
     let components_serialized = components.iter().map(|c| serialize_outline(c, em)).collect();
-    let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
+    // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
     let r = Ok(CharResp {
         components: components_serialized,

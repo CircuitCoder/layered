@@ -2,7 +2,7 @@ use std::iter::Iterator;
 
 use syntect::dumps::from_uncompressed_data;
 use syntect::easy::HighlightLines;
-use syntect::parsing::{SyntaxDefinition, SyntaxReference, SyntaxSet};
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::highlighting::{Color, Theme, ThemeSet};
 use syntect::html::{append_highlighted_html_for_styled_line, IncludeBackground};
 use syntect::util::LinesWithEndings;
