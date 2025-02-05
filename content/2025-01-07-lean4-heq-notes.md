@@ -64,7 +64,7 @@ Qed.
 
 因此上述 Lean4 证明中唯一一个比较 Dubious 的地方就是 HEq 和 Eq 的转换，也就是 [`eq_of_heq`](https://leanprover-community.github.io/mathlib4_docs/Init/Prelude.html#eq_of_heq) 这个定理，和 [JMeq_eq](https://coq.inria.fr/doc/v8.20/stdlib/Coq.Logic.JMeq.html) 一模一样：
 
-```
+```lean4
 theorem eq_of_heq {α : Sort u} {a a' : α} (h : HEq a a') : Eq a a' :=
   have : (α β : Sort u) → (a : α) → (b : β) → HEq a b → (h : Eq α β) → Eq (cast h a) b :=
     fun _ _ _ _ h₁ =>
@@ -74,7 +74,7 @@ theorem eq_of_heq {α : Sort u} {a a' : α} (h : HEq a a') : Eq a a' :=
 
 使用了 HEq 的 recursion principle，如果我们仔细看这个 recursion principle 的定义，并且把上面那句 `h₁.rec (fun _ => rfl)` 展开的话：
 
-```
+```lean4
 Heq.rec : {α : Sort u} →
   {a : α} →
     {motive : {β : Sort u} → (b : β) → HEq a b → Sort v} →

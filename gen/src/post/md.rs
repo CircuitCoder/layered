@@ -1,7 +1,8 @@
 use std::iter::Iterator;
 
+use syntect::dumps::from_uncompressed_data;
 use syntect::easy::HighlightLines;
-use syntect::parsing::{SyntaxReference, SyntaxSet};
+use syntect::parsing::{SyntaxDefinition, SyntaxReference, SyntaxSet};
 use syntect::highlighting::{Color, Theme, ThemeSet};
 use syntect::html::{append_highlighted_html_for_styled_line, IncludeBackground};
 use syntect::util::LinesWithEndings;
@@ -62,11 +63,15 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
     let mapped = std::pin::pin!(#[coroutine] static move || {
         use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
 
-        let ss = SyntaxSet::load_defaults_newlines();
+        let ss: SyntaxSet = from_uncompressed_data(include_bytes!(env!("SYNTAX_PACK"))).unwrap();
         let ts = ThemeSet::load_defaults();
         let theme = &ts.themes["Solarized (dark)"];
         let mut codeblock = String::new();
         let mut in_codeblock = None;
+
+        for syn in ss.syntaxes() {
+            log::debug!("Supported syntax: {}", syn.name);
+        }
 
         for event in parser.into_iter() {
             match event {

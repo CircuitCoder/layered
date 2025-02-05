@@ -41,6 +41,7 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
     for entry in entries {
         let entry = entry?;
         let file = std::fs::read_to_string(entry.path())?;
+        log::info!("Parsing {}", entry.file_name().to_string_lossy());
         let parsed = md::parse(&file)?;
         pre.insert(
             String::from_utf8(entry.file_name().as_bytes().to_vec())?.to_string(),
@@ -106,6 +107,7 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
     let output: anyhow::Result<Vec<_>> = pre.into_iter()
         .map(
             |(filename, (pre, creation, update))| -> anyhow::Result<Post> {
+                log::info!("Processing {}", filename);
                 let creation = if let Some(c) = creation {
                     c
                 } else {

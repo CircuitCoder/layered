@@ -16,7 +16,7 @@
 - [x] Comment section
 - [ ] Tag
 - [ ] Search
-- [ ] Code highlight
+- [x] Code highlight
 - [ ] Translations
 - [ ] SSR (basically preload all inline HTMLs)
 - [ ] Service worker

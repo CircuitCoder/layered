@@ -21,3 +21,6 @@ lyon_path = "1.0.6"
 clap = { version = "4.5.27", features = ["derive"] }
 ts-rs = { version = "10.1.0" }
 syntect = "5.2.0"
+
+[build-dependencies]
+syntect = "5.2.0"
