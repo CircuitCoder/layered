@@ -216,7 +216,7 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
     title = post.metadata.title + ' | 分层 - Layered';
     backlink = CONFIG.BASE + '/post/' + slug;
     rendered = new Post(post, register);
-    desc = post.plain;
+    desc = post.plain.length > 300 ? post.plain.slice(0, 300) + '...' : post.plain;
   }
 
   // Init about components
