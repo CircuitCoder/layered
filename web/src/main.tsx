@@ -111,7 +111,7 @@ async function startup(cn: string) {
   root.classList.add(`initial`);
   root.classList.add(`${cn}-trigger`);
   root.classList.add(`${cn}`);
-  root.style.display = '';
+  document.body.style.display = '';
   root.getBoundingClientRect(); // Force re-render
   await nextTick();
   root.classList.remove(`${cn}-trigger`);

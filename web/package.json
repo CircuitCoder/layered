@@ -10,7 +10,7 @@
     "preview": "vite preview",
     "prerender": "node --experimental-strip-types ./prerender.ts",
     "patch:render": "rsync -av ./dist/client/assets/ ./dist/render/assets/ && cp ./dist/client/data.json ./dist/render/data.json && cp ./dist/client/index.html ./dist/render/fallback.html",
-    "full": "npm run build:client && npm run build:server && npm run prerender && npm run patch:render"
+    "full": "npm run build:client && npm run build:server && npm run prerender && npm run patch:render && ./compress.sh"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",
