@@ -220,7 +220,7 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
 
   // Init about components
   if(state.ty === 'About') {
-    rendered = new About(register);
+    rendered = new About(false, register);
     title = '关于 | 分层 - Layered';
     backlink = CONFIG.BASE + '/about';
 
@@ -269,6 +269,10 @@ async function transitionRehydrate(slowEntry: boolean) {
     const p = new Post();
     rendered = p;
     p.entry(null);
+  } else if(state.ty === 'About') {
+    const a = new About(true);
+    rendered = a;
+    a.entry();
   }
 }
 
@@ -662,9 +666,17 @@ class Post implements RenderedEntity {
 class About implements RenderedEntity {
   element: HTMLElement;
 
-  constructor(register?: (key: string, value: any) => void) {
+  constructor(prerendered: boolean = false, register?: (key: string, value: any) => void) {
+    if(prerendered) {
+      const rehydrated = rehydrate('about');
+      if(!rehydrated) throw new Error('Hydration failed!');
+      this.element = rehydrated;
+      return;
+    }
+    if(SSR) register!(':prerendered', 'about');
+
     this.element =
-      <div id="about">
+      <div class="about">
         {arrow}
         <div class="about-content">
           <div class="about-inner">

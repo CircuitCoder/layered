@@ -648,7 +648,7 @@ pre:has(code) {
 }
 
 /* About */
-#about {
+.about {
   left: 0;
   right: 0;
 }

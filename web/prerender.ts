@@ -37,6 +37,7 @@ async function work() {
 
   // Prerender root
   await renderPath('/');
+  await renderPath('/about');
 
   // Render all posts
   for(const post of await fs.readdir('../content')) {

@@ -8,7 +8,9 @@
     "build:client": "tsc && vite build --outDir dist/client",
     "build:server": "tsc && vite build --outDir dist/server --ssr src/main.tsx",
     "preview": "vite preview",
-    "prerender": "node --experimental-strip-types ./prerender.ts"
+    "prerender": "node --experimental-strip-types ./prerender.ts",
+    "patch:render": "rsync -av ./dist/client/assets/ ./dist/render/assets/ && cp ./dist/client/data.json ./dist/render/data.json && cp ./dist/client/index.html ./dist/render/fallback.html",
+    "full": "npm run build:client && npm run build:server && npm run prerender && npm run patch:render"
   },
   "devDependencies": {
     "@types/node": "^22.13.1",
