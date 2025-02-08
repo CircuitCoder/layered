@@ -92,6 +92,14 @@ a {
   color: var(--color-fg);
 }
 
+root {
+  /* Defaults for noscript */
+  --scroll: 0;
+  --var-scale: 1;
+  --var-offset-x: 0px;
+  --var-offset-y: 0px;
+}
+
 #scroll-sentinel {
   position: absolute;
   top: 0;

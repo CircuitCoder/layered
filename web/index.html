@@ -6,7 +6,7 @@
     <title>Layered</title>
   </head>
   <body>
-    <root id="root" style="display: none">
+    <root id="root" class="header">
       <div id="scroll-sentinel"></div>
       <nav>
         <!-- SSR: logo[ -->
@@ -32,6 +32,9 @@
 
       <!-- SSR: rendered -->
     </root>
+    <script>
+      document.getElementById('root').style.display = 'none';
+    </script>
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.tsx"></script>
   </body>
