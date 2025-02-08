@@ -178,10 +178,23 @@ async function reflection(path: String, activator: EventTarget | null = null, re
 
     const root = document.getElementById('root')!;
     root.setAttribute('data-view', newState.ty.toLowerCase());
-  } else {
-    register!(':data-view', newState.ty.toLowerCase());
   }
 
+  const prerendered = !SSR && document.getElementById('root')!.hasAttribute('data-prerendered');
+  if(prerendered) {
+    try {
+      await transitionRehydrate(cn === 'banner' && oldState.ty === 'Vacant');
+      return;
+    } catch(e) {
+      console.error(e);
+      console.log('Fallback to normal rendering, removing pre-rendered element');
+      document.querySelector('.prerendered')?.remove();
+    }
+  }
+  await transitionRender(activator, cn === 'banner' && oldState.ty === 'Vacant', register);
+}
+
+async function transitionRender(activator: EventTarget | null, slowEntry: boolean, register?: (key: string, value: any) => void) {
   // All transitions require fetching all data, so we wait on that
   const data = await getData();
 
@@ -191,8 +204,11 @@ async function reflection(path: String, activator: EventTarget | null = null, re
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
-  if(state.ty === 'Home')
-    rendered = new List(data, register).entry(cn === 'banner' && oldState.ty === 'Vacant');
+  if(state.ty === 'Home') {
+    const l = new List(data, register);
+    rendered = l;
+    if(!SSR) l.entry(slowEntry);
+  }
 
   // Render post
   if(state.ty === 'Post') {
@@ -205,7 +221,9 @@ async function reflection(path: String, activator: EventTarget | null = null, re
       const sibling = activator.parentElement.querySelector('svg');
       if(sibling) renderedTitle = sibling as SVGSVGElement;
     }
-    rendered = new Post(post, register).entry(renderedTitle);
+    const p = new Post(post, register);
+    rendered = p;
+    if(!SSR) p.entry(renderedTitle);
 
     // TODO: opengraph
   }
@@ -232,6 +250,18 @@ async function reflection(path: String, activator: EventTarget | null = null, re
   } else {
     register!(':title', title);
     if(backlink) register!(':backlink', title);
+  }
+}
+
+async function transitionRehydrate(slowEntry: boolean) {
+  if(state.ty === 'Home') {
+    const l = new List();
+    rendered = l;
+    l.entry(slowEntry);
+  } else if(state.ty === 'Post') {
+    const p = new Post();
+    rendered = p;
+    p.entry(null);
   }
 }
 
@@ -266,13 +296,32 @@ function renderGiscus(title: string): HTMLElement {
   )
 }
 
+function rehydrate(key: string, cls?: string): HTMLElement | null {
+  if(SSR) return null;
+  const root = document.getElementById('root')!;
+  if(root.getAttribute('data-prerendered') !== key) return null;
+  const queried = root.querySelector(`:scope > .${cls ?? key}`);
+  return queried as HTMLElement | null;
+}
+
 /**
  * List rendering
  */
 class List implements RenderedEntity {
   element: HTMLElement;
 
-  constructor(posts: PostData[], register?: (key: string, value: any) => void) {
+  constructor(posts?: PostData[], register?: (key: string, value: any) => void) {
+    // TODO: other keys
+    // TODO: actually use hash of list
+    if(posts === undefined) {
+      const rehydrated = rehydrate('list');
+      if(!rehydrated) throw new Error('Hydration failed!');
+      // TODO: retry render
+      this.element = rehydrated;
+      return;
+    }
+    if(SSR) register!(':prerendered', 'list');
+
     const entries = posts.map(p => List.renderEntry(p));
     const list = <div class="list">{...entries}</div>
     this.element = list;
@@ -343,7 +392,17 @@ class Post implements RenderedEntity {
   element: HTMLElement;
   observer: IntersectionObserver | null = null;
 
-  constructor(post: PostData, register?: (key: string, value: any) => void) {
+  constructor(post?: PostData, register?: (key: string, value: any) => void) {
+    // TODO: actually use hash of post
+    if(post === undefined) {
+      const key = 'post';
+      const rehydrated = rehydrate(key);
+      if(!rehydrated) throw new Error('Hydration failed!');
+      this.element = rehydrated;
+      return;
+    }
+    if(SSR) register!(':prerendered', 'post');
+
     // Get available space
     const viewportWidth = SSR ? SSRViewport : window.innerWidth;
     let titleWidth: number;
@@ -387,7 +446,7 @@ class Post implements RenderedEntity {
           }
           <div class="post-metadata-line post-metadata-tags">
             { cloneNode(Icons.Tag) }
-            { post.metadata.tags.map(tag => <a href={`/tag/${tag}`} class="post-metadata-tag">
+            { post!.metadata.tags.map(tag => <a href={`/tag/${tag}`} class="post-metadata-tag">
               {tag}
             </a>) }
           </div>

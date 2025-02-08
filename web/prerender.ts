@@ -15,7 +15,7 @@ async function renderPath(path: string) {
       // TODO: assert special keys cannot occur more than one time
       if(key === ':title') tmpl.replace(/<title>.*<\/title>/, `<title>${value}</title>`);
       else if(key === ':backlink') tmpl = tmpl.replace(/<\/head>/, `<meta name="giscus:backlink" href="${value}"></head>`);
-      else if(key === ':data-view') tmpl = tmpl.replace(/<root /, `<root data-view="${value}" data-prerendered="${value}"`);
+      else if(key === ':prerendered') tmpl = tmpl.replace(/<root /, `<root data-prerendered="${value}" `);
       else console.log('Unknown special key:', key);
     } else {
       // This is a little of a type hack, because value is actually string
