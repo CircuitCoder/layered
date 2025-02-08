@@ -10,6 +10,7 @@ use syntect::util::LinesWithEndings;
 pub struct ParsedMarkdown {
     pub metadata: PartialMetadata,
     pub html: String,
+    pub plain: String,
 }
 
 pub struct PartialMetadata {
@@ -101,7 +102,34 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
     let mut html = String::new();
     pulldown_cmark::html::push_html(&mut html, std::iter::from_coroutine(mapped));
 
-    Ok(ParsedMarkdown { metadata, html })
+    // Generate plaintext
+    let mut plain = String::new();
+    for ev in pulldown_cmark::Parser::new_ext(content.trim(), pulldown_cmark::Options::all()) {
+        use pulldown_cmark::{Event, Tag, TagEnd};
+        match ev {
+            Event::Start(t) => plain += match t {
+                Tag::Heading { .. } => "\n",
+                _ => "",
+            },
+            Event::End(t) => plain += match t {
+                TagEnd::Paragraph | TagEnd::BlockQuote(_) | TagEnd::CodeBlock | TagEnd::Heading(_) | TagEnd::Item => "\n",
+                _ => "",
+            },
+            Event::Text(s)
+            | Event::Code(s)
+            | Event::DisplayMath(s)
+            | Event::InlineMath(s)
+            | Event::Html(s)
+            | Event::InlineHtml(s)
+            | Event::FootnoteReference(s) => plain += s.as_ref(),
+            Event::SoftBreak => plain += " ",
+            Event::HardBreak => plain += "\n",
+            Event::Rule => plain += "---\n",
+            Event::TaskListMarker(c) => plain += if c { "[x] " } else { "[ ] " },
+        }
+    }
+
+    Ok(ParsedMarkdown { metadata, html, plain })
 }
 
 fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {

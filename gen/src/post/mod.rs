@@ -16,6 +16,7 @@ mod md;
 pub struct Post {
     pub metadata: Metadata,
     pub html: String,
+    pub plain: String,
 }
 
 type DT = chrono::DateTime<chrono::FixedOffset>;
@@ -129,6 +130,7 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
 
                 Ok(Post {
                     html: pre.html,
+                    plain: pre.plain,
                     metadata: Metadata {
                         id: id.to_owned(),
                         title: pre.metadata.title,

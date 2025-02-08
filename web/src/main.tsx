@@ -153,7 +153,7 @@ function parsePath(path: String): State {
     return { ty: 'NotFound' };
 }
 
-async function reflection(path: String, activator: EventTarget | null = null, register?: (key: string, value: any) => void) {
+async function reflection(path: string, activator: EventTarget | null = null, register?: (key: string, value: any) => void) {
   // Commit exit animation
   const newState = parsePath(path);
   const oldState = state;
@@ -191,16 +191,17 @@ async function reflection(path: String, activator: EventTarget | null = null, re
       document.querySelector('.prerendered')?.remove();
     }
   }
-  await transitionRender(activator, cn === 'banner' && oldState.ty === 'Vacant', register);
+  await transitionRender(activator, cn === 'banner' && oldState.ty === 'Vacant', register, path);
 }
 
-async function transitionRender(activator: EventTarget | null, slowEntry: boolean, register?: (key: string, value: any) => void) {
+async function transitionRender(activator: EventTarget | null, slowEntry: boolean, register?: (key: string, value: any) => void, path?: string) {
   // All transitions require fetching all data, so we wait on that
   const data = await getData();
 
   // The default title
   let title: string = '分层 - Layered';
   let backlink: string | null = null;
+  let desc: string = '喵喵的博客';
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
@@ -214,8 +215,7 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
     title = post.metadata.title + ' | 分层 - Layered';
     backlink = CONFIG.BASE + '/post/' + slug;
     rendered = new Post(post, register);
-
-    // TODO: opengraph
+    desc = post.plain;
   }
 
   // Init about components
@@ -223,8 +223,8 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
     rendered = new About(false, register);
     title = '关于 | 分层 - Layered';
     backlink = CONFIG.BASE + '/about';
-
   }
+
   // TODO: actually extract this
   if(!rendered) throw new Error('Not rendered!');
   if(SSR) register!('rendered', rendered?.element);
@@ -245,18 +245,17 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
 
   if(!SSR) {
     document.title = title;
-    if(backlink) {
-      let meta = document.querySelector('meta[name="giscus:backlink"]');
-      if(meta) meta.setAttribute('content', backlink);
-      else {
-        meta = <meta name="giscus:backlink" content={backlink} />;
-        document.head.appendChild(meta);
-      }
-    } else
-      document.querySelector('meta[name="giscus:backlink"]')?.remove();
+    editMeta('giscus:backlink', backlink);
+    editMeta('og:title', title);
+    editMeta('og:url', backlink);
+    editMeta('og:description', desc);
   } else {
     register!(':title', title);
     if(backlink) register!(':backlink', title);
+    register!(':og:title', title);
+    register!(':og:url', CONFIG.BASE + path);
+    register!(':og:type', 'website');
+    register!(':og:description', desc);
   }
 }
 
@@ -273,6 +272,20 @@ async function transitionRehydrate(slowEntry: boolean) {
     const a = new About(true);
     rendered = a;
     a.entry();
+  }
+}
+
+function editMeta(key: string, value: string | null) {
+  let meta = document.querySelector(`meta[name="${key}"]`);
+  if(value === null) {
+    meta?.remove();
+    return;
+  }
+
+  if(meta) meta.setAttribute('content', value);
+  else {
+    meta = <meta name={key} content={value} />;
+    document.head.appendChild(meta);
   }
 }
 

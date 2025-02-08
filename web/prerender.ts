@@ -13,9 +13,11 @@ async function renderPath(path: string) {
     if(key.startsWith(':')) {
       // Special keys
       // TODO: assert special keys cannot occur more than one time
+      // TODO: render image based on og:title
       if(key === ':title') tmpl.replace(/<title>.*<\/title>/, `<title>${value}</title>`);
       else if(key === ':backlink') tmpl = tmpl.replace(/<\/head>/, `<meta name="giscus:backlink" href="${value}"></head>`);
       else if(key === ':prerendered') tmpl = tmpl.replace(/<root /, `<root data-prerendered="${value}" `);
+      else if(key.startsWith(':og:')) tmpl = tmpl.replace(/<\/head>/, `<meta property="${key.slice(1)}" content="${value}"></head>`);
       else console.log('Unknown special key:', key);
     } else {
       // This is a little of a type hack, because value is actually string
