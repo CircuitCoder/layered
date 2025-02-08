@@ -648,6 +648,11 @@ pre:has(code) {
 }
 
 /* About */
+#about {
+  left: 0;
+  right: 0;
+}
+
 #arrow {
   position: fixed;
   width: 100px;
@@ -671,15 +676,6 @@ pre:has(code) {
 
   & path {
     stroke-dasharray: var(--path-length);
-    stroke-dashoffset: var(--path-length);
-    transition-property: stroke-dashoffset;
-    transition-duration: .1s;
-    transition-timing-function: ease-in;
-
-    &:nth-child(1) {
-      transition-duration: .2s;
-      transition-delay: .2s;
-    }
   }
 }
 
@@ -689,33 +685,10 @@ pre:has(code) {
 }
 
 root[data-view="about"] {
-  #arrow path {
-    stroke-dashoffset: 0;
-
-    transition-duration: .3s;
-    transition-timing-function: ease-out;
-    &:nth-child(1) {
-      transition-duration: .3s;
-      transition-delay: 0s;
-    }
-    &:nth-child(2) {
-      transition-delay: .5s;
-    }
-  }
-
   & .nav-about {
     opacity: 0;
     transition-timing-function: ease-in;
     transition-delay: 0s;
-  }
-
-  .about-content, .about-text {
-    opacity: 1;
-    transition-timing-function: ease-out;
-  }
-
-  .about-text {
-    transition-delay: 1s;
   }
 }
 
@@ -736,9 +709,6 @@ root[data-view="about"] {
 
   font-size: 16px;
   line-height: 28px;
-
-  transition: opacity .2s ease-in;
-  opacity: 0;
 }
 
 .about-inner {
@@ -747,11 +717,6 @@ root[data-view="about"] {
   @media (max-width: 800px) {
     margin: 0 auto;
   }
-}
-
-.about-text {
-  transition: opacity .2s ease-in;
-  opacity: 0;
 }
 
 .about-overlay {

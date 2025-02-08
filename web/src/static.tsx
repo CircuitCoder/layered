@@ -6,7 +6,7 @@ import { jsxSVG as jsx } from "./jsx";
 
 const SQRT3 = Math.sqrt(3);
 const CORNER_RADIUS = 10;
-const logo = <svg id="logo" viewbox="0 0 160 100">
+export const logo = <svg id="logo" viewbox="0 0 160 100">
   <defs>
     <path
       id="logo-shard"
@@ -49,7 +49,7 @@ const logo = <svg id="logo" viewbox="0 0 160 100">
   </a>
 </svg>;
 
-const arrow = <svg id="arrow" viewBox="0 0 38.0965290904 30.5262755052">
+export const arrow = <svg id="arrow" viewBox="0 0 38.0965290904 30.5262755052">
   <path
     d="M0,28.0142232945c3.2310780829-6.7495110392,7.9280695555-12.8872048319,14.0387158787-17.2064369811,6.1106463232-4.3192321492,13.6868529362-6.7264715069,21.1379972765-6.0363897249"
     style="--path-length: 44.888343811035156"
@@ -64,6 +64,4 @@ const SSR = import.meta.env.SSR;
 export function apply(register: (key: string, value: Element) => void) {
   if(SSR || document.getElementById("logo")?.classList.contains('static-patch'))
     register("logo", logo);
-  if(SSR || document.getElementById("arrow")?.classList.contains('static-patch'))
-    register("arrow", arrow);
 }

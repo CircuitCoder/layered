@@ -1,4 +1,4 @@
-import { apply as applyStatic } from "./static";
+import { apply as applyStatic, arrow } from "./static";
 
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
@@ -204,38 +204,45 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
-  if(state.ty === 'Home') {
-    const l = new List(data, register);
-    rendered = l;
-    if(!SSR) l.entry(slowEntry);
-  }
+  if(state.ty === 'Home')
+    rendered = new List(data, register);
 
   // Render post
   if(state.ty === 'Post') {
     const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
     const post = data.find(p => p.metadata.id === slug)!;
     title = post.metadata.title + ' | 分层 - Layered';
-    let renderedTitle: SVGSVGElement | null = null;
     backlink = CONFIG.BASE + '/post/' + slug;
-    if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
-      const sibling = activator.parentElement.querySelector('svg');
-      if(sibling) renderedTitle = sibling as SVGSVGElement;
-    }
-    const p = new Post(post, register);
-    rendered = p;
-    if(!SSR) p.entry(renderedTitle);
+    rendered = new Post(post, register);
 
     // TODO: opengraph
   }
 
   // Init about components
   if(state.ty === 'About') {
-    initAboutGiscus();
+    rendered = new About(register);
     title = '关于 | 分层 - Layered';
     backlink = CONFIG.BASE + '/about';
+
+  }
+  // TODO: actually extract this
+  if(!rendered) throw new Error('Not rendered!');
+  if(SSR) register!('rendered', rendered?.element);
+  else {
+    document.getElementById('root')!.appendChild(rendered.element);
+
+    if(state.ty === 'Home') (rendered as List).entry(slowEntry);
+    if(state.ty === 'Post') {
+      let renderedTitle: SVGSVGElement | null = null;
+      if(activator !== null && activator instanceof HTMLElement && activator.parentElement?.classList.contains('entry-title')) {
+        const sibling = activator.parentElement.querySelector('svg');
+        if(sibling) renderedTitle = sibling as SVGSVGElement;
+      }
+      (rendered as Post).entry(renderedTitle);
+    }
+    if(state.ty === 'About') (rendered as About).entry();
   }
 
-  // TODO: use special procedure during SSR
   if(!SSR) {
     document.title = title;
     if(backlink) {
@@ -325,12 +332,6 @@ class List implements RenderedEntity {
     const entries = posts.map(p => List.renderEntry(p));
     const list = <div class="list">{...entries}</div>
     this.element = list;
-
-    if(SSR) {
-      register!('rendered', list);
-      return;
-    } else document.getElementById('root')!.appendChild(list);
-
   }
 
   entry(initialHome: boolean): List {
@@ -483,11 +484,6 @@ class Post implements RenderedEntity {
       {auxMetadata}
       {contentWrapper}
     </div>;
-
-    // TODO: actually extract this
-    if(SSR) {
-      register!('rendered', this.element);
-    } else document.getElementById('root')!.appendChild(this.element);
   }
 
   entry(renderedTitle: SVGSVGElement | null): Post {
@@ -663,12 +659,89 @@ class Post implements RenderedEntity {
   }
 }
 
-// About rendering is benign
+class About implements RenderedEntity {
+  element: HTMLElement;
 
-function initAboutGiscus() {
-  const container = document.getElementById('about-giscus')!;
-  if(container.childElementCount > 0) return;
-  container.appendChild(renderGiscus("关于"));
+  constructor(register?: (key: string, value: any) => void) {
+    this.element =
+      <div id="about">
+        {arrow}
+        <div class="about-content">
+          <div class="about-inner">
+            <h2 class="about-title">是<a href="https://c-3.moe">喵喵</a>的博客。</h2>
+            <div class="about-text">
+              <p>
+                喵喵不是很聪明的那种猫，因此就连自己的想法有的时候都搞不太懂。更糟糕的是，喵喵每天在做的事情也是五花八门，有的时候会写一些<a href="https://github.com/CircuitCoder">奇怪代码</a>，偶尔作为 <ruby>CS 硕士生<rp>(</rp><rt>工科猪</rt><rp>)</rp></ruby>在<a href="https://tuna.moe">工位摸鱼</a>，吃饱的时候会<a href="https://www.strava.com/athletes/39432242">出门跑步</a>，更多的时候是像猫咪一样呼呼大睡。
+              </p>
+              <p>
+                然而丑陋的表达欲是无法抗拒的，所以喵喵尝试将自己小脑瓜里的混沌拣出部分自认为有意思的，编码成文字，分门别类摆放在这个网站上。人们所度过的时间是连续的，然而文字所能定义的内容至多可数，放在这个网站上的内容更是只能有限，是一列离散的采样。这些文章有些涉及技术，有些是生活琐事，还有一些是纯粹的碎碎念，他们所折射出的，是一个分层的喵喵形象。
+              </p>
+              <p>
+                无论你如何找到这个网站，想接触哪个层面的喵喵，都欢迎你的来访，希望你能在这里找到有趣的东西。
+              </p>
+            </div>
+            <div id="about-giscus">{renderGiscus('关于')}</div>
+          </div>
+          <div class="about-overlay"></div>
+        </div>
+      </div>;
+  }
+
+  async entry() {
+    const arrowComps = this.element.querySelectorAll('#arrow path');
+    const arrowDelays = [0, 500];
+    const arrowAnimations = Array.from(arrowComps).map((comp, i) => comp.animate([
+      { strokeDashoffset: 'var(--path-length)' }, { strokeDashoffset: 0 },
+    ], {
+      duration: 300,
+      delay: arrowDelays[i],
+      easing: 'ease-out',
+      fill: 'both',
+    }));
+
+    const content = this.element.querySelector('.about-content') as HTMLElement;
+    const contentAnimation = content.animate([{ opacity: 0 }, {}], {
+      duration: 200,
+      easing: 'ease-out',
+      fill: 'both',
+    });
+
+    const text = this.element.querySelector('.about-text') as HTMLElement;
+    const textAnimation = text.animate([{ opacity: 0 }, {}], {
+      duration: 200,
+      delay: 1000,
+      easing: 'ease-out',
+      fill: 'both',
+    });
+
+    return Promise.all([...arrowAnimations.map(e => e.finished), contentAnimation.finished, textAnimation.finished]);
+  }
+
+  async exit() {
+    freezeScroll(this.element);
+
+    const arrowComps = this.element.querySelectorAll('#arrow path');
+    const arrowDurations = [200, 100];
+    const arrowDelays = [200, 0];
+    const arrowAnimations = Array.from(arrowComps).map((comp, i) => comp.animate([
+      { strokeDashoffset: 0 }, { strokeDashoffset: 'var(--path-length)'},
+    ], {
+      duration: arrowDurations[i],
+      delay: arrowDelays[i],
+      easing: 'ease-in',
+      fill: 'both',
+    }));
+
+    const content = this.element.querySelector('.about-content') as HTMLElement;
+    const contentAnimation = content.animate([{}, { opacity: 0 }], {
+      duration: 200,
+      easing: 'ease-in',
+      fill: 'both',
+    });
+
+    await Promise.all([...arrowAnimations.map(e => e.finished), contentAnimation.finished]);
+    this.element.remove();
+  }
 }
 
 if(!SSR) document.addEventListener('DOMContentLoaded', () => bootstrap());
