@@ -189,12 +189,10 @@ async function reflection(path: String, activator: EventTarget | null = null, re
   let title: string = '分层 - Layered';
   let backlink: string | null = null;
 
-  console.log(state);
-
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home')
-    rendered = new List(data, cn === 'banner' && oldState.ty === 'Vacant', register);
+    rendered = new List(data, register).entry(cn === 'banner' && oldState.ty === 'Vacant');
 
   // Render post
   if(state.ty === 'Post') {
@@ -207,7 +205,9 @@ async function reflection(path: String, activator: EventTarget | null = null, re
       const sibling = activator.parentElement.querySelector('svg');
       if(sibling) renderedTitle = sibling as SVGSVGElement;
     }
-    rendered = new Post(post, renderedTitle, register);
+    rendered = new Post(post, register).entry(renderedTitle);
+
+    // TODO: opengraph
   }
 
   // Init about components
@@ -272,7 +272,7 @@ function renderGiscus(title: string): HTMLElement {
 class List implements RenderedEntity {
   element: HTMLElement;
 
-  constructor(posts: PostData[], initialHome: boolean, register?: (key: string, value: any) => void) {
+  constructor(posts: PostData[], register?: (key: string, value: any) => void) {
     const entries = posts.map(p => List.renderEntry(p));
     const list = <div class="list">{...entries}</div>
     this.element = list;
@@ -280,11 +280,12 @@ class List implements RenderedEntity {
     if(SSR) {
       register!('rendered', list);
       return;
-    }
+    } else document.getElementById('root')!.appendChild(list);
 
-    document.getElementById('root')!.appendChild(list);
+  }
 
-    list.animate([{
+  entry(initialHome: boolean): List {
+    this.element.animate([{
       transform: 'translateY(-20px)',
       opacity: 0,
     }, {}], {
@@ -293,6 +294,7 @@ class List implements RenderedEntity {
       easing: 'ease-out',
       fill: 'backwards',
     });
+    return this;
   }
 
   private static renderEntry(post: PostData): HTMLElement {
@@ -341,7 +343,7 @@ class Post implements RenderedEntity {
   element: HTMLElement;
   observer: IntersectionObserver | null = null;
 
-  constructor(post: PostData, renderedTitle: SVGSVGElement | null, register?: (key: string, value: any) => void) {
+  constructor(post: PostData, register?: (key: string, value: any) => void) {
     // Get available space
     const viewportWidth = SSR ? SSRViewport : window.innerWidth;
     let titleWidth: number;
@@ -351,8 +353,6 @@ class Post implements RenderedEntity {
 
     const titleSpec = renderLine(post.metadata.title_outline, titleWidth / 48);
     const title = materializeLine(...titleSpec, ['title-center']);
-
-    renderedTitle?.style.setProperty('opacity', '0');
 
     const content = <div __html={post.html} class="post-content"></div>
 
@@ -425,12 +425,18 @@ class Post implements RenderedEntity {
       {contentWrapper}
     </div>;
 
+    // TODO: actually extract this
     if(SSR) {
       register!('rendered', this.element);
-      return;
-    }
+    } else document.getElementById('root')!.appendChild(this.element);
+  }
 
-    document.getElementById('root')!.appendChild(this.element);
+  entry(renderedTitle: SVGSVGElement | null): Post {
+    const title = this.element.querySelector(':scope > .title') as SVGSVGElement;
+    const contentWrapper = this.element.querySelector('.post-content-wrapper') as HTMLElement;
+    const metadata = this.element.querySelector('.post-metadata') as HTMLElement;
+
+    renderedTitle?.style.setProperty('opacity', '0');
 
     Post.applyTitleVariation(title, renderedTitle);
     if(!renderedTitle) Post.applyTitleFreeAnimation(title, true);
@@ -456,7 +462,7 @@ class Post implements RenderedEntity {
     });
     this.observer.observe(metadata);
 
-    // TODO: opengraph
+    return this;
   }
 
   async exit() {
