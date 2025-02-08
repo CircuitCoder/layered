@@ -21,7 +21,7 @@ async function renderPath(path: string) {
       // This is a little of a type hack, because value is actually string
       const valueStr = value as unknown as string;
       tmpl = tmpl.replace(`<!-- SSR: ${key} -->`, valueStr);
-      tmpl = tmpl.replace(new RegExp(`<!-- SSR: ${key}[ -->.*<!-- SSR: ${key}] -->`, 'm'), valueStr);
+      tmpl = tmpl.replace(new RegExp(`<!-- SSR: ${key}\\[ -->[\\s\\S]*<!-- SSR: ${key}\\] -->`, 'm'), valueStr);
     }
   }, path);
   await fs.writeFile(`./dist/render${path === '/' ? '/index' : path}.html`, tmpl);
