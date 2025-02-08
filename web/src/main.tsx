@@ -557,7 +557,6 @@ class Post implements RenderedEntity {
           {
             transform: `
               translate(${deltas[i].dx}px, ${deltas[i].dy}px)
-              translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
               scale(var(--size))
               translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
               scale(${deltas[i].scale})
