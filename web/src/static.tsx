@@ -62,8 +62,8 @@ const arrow = <svg id="arrow" viewBox="0 0 38.0965290904 30.5262755052">
 
 const SSR = import.meta.env.SSR;
 export function apply(register: (key: string, value: Element) => void) {
-  if(SSR || !document.getElementById("logo")?.hasChildNodes())
+  if(SSR || document.getElementById("logo")?.classList.contains('static-patch'))
     register("logo", logo);
-  if(SSR || !document.getElementById("arrow")?.hasChildNodes())
+  if(SSR || document.getElementById("arrow")?.classList.contains('static-patch'))
     register("arrow", arrow);
 }

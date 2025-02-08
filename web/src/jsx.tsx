@@ -5,6 +5,7 @@ type styleDef = string | { [key: string]: any };
 export type JSXData = {
   class?: classDef,
   style?: styleDef,
+  __html?: string,
   [other: string]: any,
 } | null;
 
@@ -50,10 +51,12 @@ export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...childre
     if(data?.class !== undefined) el.setAttribute("class", evalClassDef(data.class));
     if(data?.style !== undefined) el.setAttribute('style', evalStyleDef(data.style));
     if(data !== null) for(const key in data) {
-      if(key === 'class' || key === 'style') continue;
+      if(key === 'class' || key === 'style' || key === '__html') continue;
       el.setAttribute(key, data[key]);
     }
-    el.append(...flatten(children));
+
+    if(data?.__html !== undefined) el.innerHTML = data.__html;
+    else el.append(...flatten(children));
     return el;
   }
 }
@@ -65,11 +68,13 @@ export function jsxFactorySSR(ns?: string): (tag: string, data: JSXData, ...chil
     if(data?.class !== undefined) str += ` class="${evalClassDef(data.class)}"`;
     if(data?.style !== undefined) str += ` style="${evalStyleDef(data.style)}"`;
     if(data !== null) for(const key in data) {
-      if(key === 'class' || key === 'style') continue;
+      if(key === 'class' || key === 'style' || key === '__html') continue;
       str += ` ${key}="${data[key]}"`;
     }
     str += '>';
-    str += flattenSSR(children).join('');
+    // TODO: assert: __html and children are mutually exclusive
+    if(data?.__html !== undefined) str += data.__html;
+    else str += flattenSSR(children).join('');
     str += `</${tag}>`;
     return str;
   }
@@ -80,6 +85,11 @@ const SSR = import.meta.env.SSR;
 const factory = SSR ? jsxFactorySSR : jsxFactory;
 export const jsx = factory();
 export const jsxSVG = factory('http://www.w3.org/2000/svg');
+
+export function clone<T extends Element>(input: T): T {
+  if(SSR) return input; // T is actually string
+  else return input.cloneNode(true) as T;
+}
 
 export namespace jsx {
   export namespace JSX {

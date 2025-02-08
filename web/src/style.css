@@ -316,6 +316,11 @@ nav {
 
   fill: var(--color-fg);
 
+  & .line {
+    transform:
+      translateY(calc(var(--line-idx)* var(--line-height) + var(--baseline-y)));
+  }
+
   & .var-group {
     transform-origin: 0 0;
     /*
@@ -323,7 +328,6 @@ nav {
      * .post-metadata-aux .title, and also applyTitleVariation !
      */
     transform:
-      translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
       scale(var(--size))
       translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
   }
@@ -338,6 +342,15 @@ nav {
 
   pointer-events: none;
   overflow: visible;
+}
+
+.title-center {
+  & .line {
+    transform:
+      translateY(calc(var(--line-idx)* var(--line-height) + var(--baseline-y)))
+      translateX(calc((var(--optical-width) - var(--line-optical-width)) * var(--size) * 0.5px));
+
+  }
 }
 
 /* List */
@@ -425,7 +438,7 @@ nav {
   }
 }
 
-.post-title {
+.post > .title {
   --size: 48;
   --baseline-y: 48px;
   --line-height: var(--title-line-height);
@@ -445,7 +458,6 @@ nav {
 
   & .var-group {
     transform:
-      translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
       translateY(calc(0px - 1px * var(--scroll, 0) * (var(--var-scale) - 0.5) / 2))
       scale(var(--size))
       translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
@@ -580,7 +592,7 @@ nav {
   }
 
   & .title .var-group {
-    transition-delay: calc(var(--grp-id) * 15ms);
+    transition-delay: calc(var(--grp-idx) * 15ms);
   }
 }
 
@@ -595,7 +607,6 @@ nav {
         opacity: 0;
         transform:
           translateX(-5px)
-          translateY(calc(var(--grp-line)* var(--line-height) + var(--baseline-y)))
           scale(var(--size))
           translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
       }

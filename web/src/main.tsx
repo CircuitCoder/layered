@@ -3,8 +3,8 @@ import { apply as applyStatic } from "./static";
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
-import { relayoutLine, renderLine } from "./font";
-import { jsx } from "./jsx";
+import { render as renderLine, materialize as materializeLine } from "./font";
+import { jsx, clone as cloneNode } from "./jsx";
 import * as Icons from "./icons";
 import * as CONFIG from "./config";
 
@@ -35,6 +35,9 @@ interface RenderedEntity {
   exit(): Promise<void>,
 }
 
+const SSR = import.meta.env.SSR;
+const SSRViewport = 1920;
+
 let state: State = { ty: 'Vacant' };
 let rendered: RenderedEntity | null = null;
 type Locale = 'zh-CN' | 'en-US';
@@ -42,7 +45,12 @@ type Locale = 'zh-CN' | 'en-US';
 let preferredLocale: Locale = 'zh-CN'; // TODO: parse from URL
 let onTop = true;
 
-const SSR = import.meta.env.SSR;
+export function reset() {
+  state = { ty: 'Vacant' };
+  rendered = null;
+  preferredLocale = 'zh-CN';
+  onTop = true;
+}
 
 function registerDOM(key: string, value: any) {
   document.getElementById(key)!.replaceWith(value);
@@ -154,10 +162,9 @@ async function reflection(path: String, activator: EventTarget | null = null, re
 
   // TODO: Verify existence, or instead use 404
 
-  if(rendered !== null) {
+  if(rendered !== null && !SSR)
     rendered.exit();
-    rendered = null;
-  }
+  rendered = null;
 
   let cn: string = 'banner';
   if(!SSR) {
@@ -200,7 +207,7 @@ async function reflection(path: String, activator: EventTarget | null = null, re
       const sibling = activator.parentElement.querySelector('svg');
       if(sibling) renderedTitle = sibling as SVGSVGElement;
     }
-    rendered = new Post(post, renderedTitle);
+    rendered = new Post(post, renderedTitle, register);
   }
 
   // Init about components
@@ -237,7 +244,7 @@ function freezeScroll(el: HTMLElement) {
 }
 
 function renderGiscus(title: string): HTMLElement {
-  const darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const darkMode = !SSR && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const discusTheme = darkMode ? 'dark_dimmed' : 'light';
 
   return (
@@ -272,19 +279,20 @@ class List implements RenderedEntity {
 
     if(SSR) {
       register!('rendered', list);
-    } else {
-      document.getElementById('root')!.appendChild(list);
-
-      list.animate([{
-        transform: 'translateY(-20px)',
-        opacity: 0,
-      }, {}], {
-        delay: initialHome ? 700 : 200,
-        duration: 200,
-        easing: 'ease-out',
-        fill: 'backwards',
-      });
+      return;
     }
+
+    document.getElementById('root')!.appendChild(list);
+
+    list.animate([{
+      transform: 'translateY(-20px)',
+      opacity: 0,
+    }, {}], {
+      delay: initialHome ? 700 : 200,
+      duration: 200,
+      easing: 'ease-out',
+      fill: 'backwards',
+    });
   }
 
   private static renderEntry(post: PostData): HTMLElement {
@@ -294,15 +302,15 @@ class List implements RenderedEntity {
     });
     const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
 
-    const line = renderLine(post.metadata.title_outline);
 
     // Get available space
-    const viewportWidth = window.innerWidth;
+    const viewportWidth = SSR ? SSRViewport : window.innerWidth;
     let titleWidth: number;
     if(viewportWidth > 500) titleWidth = Math.max(viewportWidth - 120, 400);
     else titleWidth = viewportWidth - 80;
 
-    relayoutLine(line, titleWidth / 24); // TODO: don't hard-code
+    const [lineSpec, lineDim] = renderLine(post.metadata.title_outline, titleWidth / 24);
+    const line = materializeLine(lineSpec, lineDim);
 
     return <div class="entry">
       <div class="entry-title" style={{
@@ -310,7 +318,7 @@ class List implements RenderedEntity {
         {line}
         <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>{post.metadata.title}</a>
       </div>
-      <div class="entry-time">{ dispDate }{ updated && Icons.Edit.cloneNode(true) }</div>
+      <div class="entry-time">{ dispDate }{ updated && cloneNode(Icons.Edit) }</div>
     </div>
   }
 
@@ -331,27 +339,22 @@ class List implements RenderedEntity {
 /* Post rendering */
 class Post implements RenderedEntity {
   element: HTMLElement;
-  observer: IntersectionObserver;
+  observer: IntersectionObserver | null = null;
 
-  constructor(post: PostData, renderedTitle: SVGSVGElement | null) {
-    const title = renderLine(post.metadata.title_outline);
-
+  constructor(post: PostData, renderedTitle: SVGSVGElement | null, register?: (key: string, value: any) => void) {
     // Get available space
-    const viewportWidth = window.innerWidth;
+    const viewportWidth = SSR ? SSRViewport : window.innerWidth;
     let titleWidth: number;
     if(viewportWidth > 800) titleWidth = Math.min(viewportWidth - 300, 900);
     else if(viewportWidth > 500) titleWidth = viewportWidth - 120;
     else titleWidth = viewportWidth - 80;
 
-    const titleLayout = relayoutLine(title, titleWidth / 48, true);
-    title.classList.add('post-title');
-    // title.style.setProperty('--full-width', titleWidth.toString());
+    const titleSpec = renderLine(post.metadata.title_outline, titleWidth / 48);
+    const title = materializeLine(...titleSpec, ['title-center']);
 
     renderedTitle?.style.setProperty('opacity', '0');
 
-    const content = document.createElement('div');
-    content.classList.add('post-content');
-    content.innerHTML = post.html;
+    const content = <div __html={post.html} class="post-content"></div>
 
     const publishTime = Temporal.Instant.from(post.metadata.publish_time);
     const publishTimeStr = publishTime.toLocaleString(preferredLocale, {
@@ -373,17 +376,17 @@ class Post implements RenderedEntity {
         <div class={cn}>
           {...additional}
           <div class="post-metadata-line post-metadata-published">
-            { Icons.Event.cloneNode(true) }
+            { cloneNode(Icons.Event) }
             { publishTimeStr }
           </div>
           {
             updatedTimeStr && <div class="post-metadata-line post-metadata-updated">
-              { Icons.EventEdit.cloneNode(true) }
+              { cloneNode(Icons.EventEdit) }
               { updatedTimeStr }
             </div>
           }
           <div class="post-metadata-line post-metadata-tags">
-            { Icons.Tag.cloneNode(true) }
+            { cloneNode(Icons.Tag) }
             { post.metadata.tags.map(tag => <a href={`/tag/${tag}`} class="post-metadata-tag">
               {tag}
             </a>) }
@@ -393,14 +396,13 @@ class Post implements RenderedEntity {
     };
 
     const metadata = genMetadata('post-metadata', []);
-    const auxTitle = renderLine(post.metadata.title_outline);
 
     // Get available space
     let auxTitleWidth: number;
     if(viewportWidth > 800) auxTitleWidth = 160;
     else auxTitleWidth = viewportWidth - 260;
 
-    relayoutLine(auxTitle, auxTitleWidth/ 16); // TODO: don't hard-code
+    const auxTitle = materializeLine(...renderLine(post.metadata.title_outline, auxTitleWidth / 16));
 
     const auxMetadata = genMetadata('post-metadata-aux', [
       auxTitle
@@ -415,13 +417,19 @@ class Post implements RenderedEntity {
         </div>
       </div>;
 
-    this.element = <div class="post">
+    this.element = <div class="post" style={{
+      '--title-line-cnt': titleSpec[1].lineCnt.toString(),
+    }}>
       {title}
       {auxMetadata}
       {contentWrapper}
     </div>;
 
-    this.element.style.setProperty('--title-line-cnt', titleLayout.lineCnt.toString());
+    if(SSR) {
+      register!('rendered', this.element);
+      return;
+    }
+
     document.getElementById('root')!.appendChild(this.element);
 
     Post.applyTitleVariation(title, renderedTitle);
@@ -455,7 +463,7 @@ class Post implements RenderedEntity {
     const el = this.element;
     el.classList.add('post-exiting');
     freezeScroll(el);
-    const title = el.querySelector('.post-title') as SVGSVGElement;
+    const title = el.querySelector(':scope > .title') as SVGSVGElement;
     const titleRemoved = Post.applyTitleFreeAnimation(title, false);
     const content = el.querySelector('.post-content-wrapper') as HTMLElement;
     const contentRemoved = content.animate([
@@ -472,9 +480,10 @@ class Post implements RenderedEntity {
 
     await Promise.all([titleRemoved, contentRemoved]);
     el.remove();
+    this.observer?.disconnect();
   }
 
-  private static applyTitleVariation(title: SVGSVGElement, ref: SVGElement | null = null) {
+  private static applyTitleVariation(title: SVGElement, ref: SVGElement | null = null) {
     // Query location prior to applying variation
 
     let deltas: { dx: number, dy: number, scale: number }[] | null = null;
@@ -507,7 +516,7 @@ class Post implements RenderedEntity {
     }
 
     let pastXVar = 0;
-    let lastLine = 0;
+    let lastLine = grps[0]?.parentElement;
 
     const uncommittedX = new Map<HTMLElement | SVGElement, number>();
     function commit(delta: number) {
@@ -517,7 +526,8 @@ class Post implements RenderedEntity {
     }
 
     for(const grp of grps) {
-      const curLine = parseInt(grp.style.getPropertyValue('--grp-line'));
+      //FIXME!!!
+      const curLine = grp.parentElement;
       if(curLine !== lastLine) {
         commit(-pastXVar / 2);
         pastXVar = 0;
@@ -529,7 +539,7 @@ class Post implements RenderedEntity {
       grp.style.setProperty('--var-offset-y', randomWithin(-0.1, 0.1) + 'px');
       uncommittedX.set(grp, pastXVar);
 
-      const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-approx-width'));
+      const grpWidth = parseFloat(grp.style.getPropertyValue('--grp-width'));
 
       pastXVar += grpWidth * (scale - 1);
     };
@@ -558,7 +568,7 @@ class Post implements RenderedEntity {
     }
   }
 
-  private static async applyTitleFreeAnimation(title: SVGSVGElement, entry: boolean) {
+  private static async applyTitleFreeAnimation(title: SVGElement, entry: boolean) {
     const strokes = Array.from(title.querySelectorAll('g.var-group path')) as SVGPathElement[];
     const promises = strokes.map((stroke, _i) => {
       const bbox = stroke.getBoundingClientRect();
