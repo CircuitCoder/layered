@@ -12,13 +12,13 @@
 - [x] Responsive
 - [x] Fill in the about page
 - [ ] RSS
-- [ ] OpenGraph
+- [x] OpenGraph
 - [x] Comment section
 - [ ] Tag
 - [ ] Search
 - [x] Code highlight
 - [ ] Translations
-- [ ] SSR (basically preload all inline HTMLs)
+- [x] SSR (basically preload all inline HTMLs)
 - [ ] Service worker
 - [ ] Accessibility
   - [ ] aria tags
