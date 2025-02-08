@@ -184,6 +184,7 @@ async function reflection(path: string, activator: EventTarget | null = null, re
   if(prerendered) {
     try {
       await transitionRehydrate(cn === 'banner' && oldState.ty === 'Vacant');
+      document.getElementById('root')!.removeAttribute('data-prerendered');
       return;
     } catch(e) {
       console.error(e);
