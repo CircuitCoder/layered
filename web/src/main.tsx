@@ -42,13 +42,25 @@ type Locale = 'zh-CN' | 'en-US';
 let preferredLocale: Locale = 'zh-CN'; // TODO: parse from URL
 let onTop = true;
 
-function bootstrap() {
-  applyStatic();
+const SSR = import.meta.env.SSR;
+
+function registerDOM(key: string, value: any) {
+  document.getElementById(key)!.replaceWith(value);
+}
+
+export async function bootstrap(
+  register: (key: string, value: any) => void = registerDOM,
+  initPath: string = document.location.pathname
+) {
+  applyStatic(register);
 
   // TODO(ssr): Recover current state
 
-  // Bootstrap init animation
-  reflection(document.location.pathname);
+  // Render
+  await reflection(initPath, null, register);
+
+  // SSR ends here
+  if(SSR) return;
 
   // Listen on scroll sentinel
   const sentinel = document.getElementById('scroll-sentinel')!;
@@ -133,7 +145,7 @@ function parsePath(path: String): State {
     return { ty: 'NotFound' };
 }
 
-async function reflection(path: String, activator: EventTarget | null = null) {
+async function reflection(path: String, activator: EventTarget | null = null, register?: (key: string, value: any) => void) {
   // Commit exit animation
   const newState = parsePath(path);
   const oldState = state;
@@ -147,17 +159,21 @@ async function reflection(path: String, activator: EventTarget | null = null) {
     rendered = null;
   }
 
-  window.scrollTo(0, 0);
+  let cn: string = 'banner';
+  if(!SSR) {
+    window.scrollTo(0, 0);
+    await nextTick();
 
-  await nextTick();
+    // TODO: delay startup animiation class detection after content is rendered, s.t. scroll is correctly reflected
+    // Or give a min-height 101vh during startup to see if the stored scroll is not a top
+    cn = updateBannerClass(newState);
+    if(oldState.ty === 'Vacant') startup(cn);
 
-  // TODO: delay startup animiation class detection after content is rendered, s.t. scroll is correctly reflected
-  // Or give a min-height 101vh during startup to see if the stored scroll is not a top
-  const cn = updateBannerClass(newState);
-  if(oldState.ty === 'Vacant') startup(cn);
-
-  const root = document.getElementById('root')!;
-  root.setAttribute('data-view', newState.ty.toLowerCase());
+    const root = document.getElementById('root')!;
+    root.setAttribute('data-view', newState.ty.toLowerCase());
+  } else {
+    register!(':data-view', newState.ty.toLowerCase());
+  }
 
   // All transitions require fetching all data, so we wait on that
   const data = await getData();
@@ -166,10 +182,12 @@ async function reflection(path: String, activator: EventTarget | null = null) {
   let title: string = '分层 - Layered';
   let backlink: string | null = null;
 
+  console.log(state);
+
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if(state.ty === 'Home')
-    rendered = new List(data, cn === 'banner' && oldState.ty === 'Vacant');
+    rendered = new List(data, cn === 'banner' && oldState.ty === 'Vacant', register);
 
   // Render post
   if(state.ty === 'Post') {
@@ -193,16 +211,21 @@ async function reflection(path: String, activator: EventTarget | null = null) {
   }
 
   // TODO: use special procedure during SSR
-  document.title = title;
-  if(backlink) {
-    let meta = document.querySelector('meta[name="giscus:backlink"]');
-    if(meta) meta.setAttribute('content', backlink);
-    else {
-      meta = <meta name="giscus:backlink" content={backlink} />;
-      document.head.appendChild(meta);
-    }
-  } else
-    document.querySelector('meta[name="giscus:backlink"]')?.remove();
+  if(!SSR) {
+    document.title = title;
+    if(backlink) {
+      let meta = document.querySelector('meta[name="giscus:backlink"]');
+      if(meta) meta.setAttribute('content', backlink);
+      else {
+        meta = <meta name="giscus:backlink" content={backlink} />;
+        document.head.appendChild(meta);
+      }
+    } else
+      document.querySelector('meta[name="giscus:backlink"]')?.remove();
+  } else {
+    register!(':title', title);
+    if(backlink) register!(':backlink', title);
+  }
 }
 
 function freezeScroll(el: HTMLElement) {
@@ -242,22 +265,26 @@ function renderGiscus(title: string): HTMLElement {
 class List implements RenderedEntity {
   element: HTMLElement;
 
-  constructor(posts: PostData[], initialHome: boolean) {
+  constructor(posts: PostData[], initialHome: boolean, register?: (key: string, value: any) => void) {
     const entries = posts.map(p => List.renderEntry(p));
     const list = <div class="list">{...entries}</div>
     this.element = list;
 
-    document.getElementById('root')!.appendChild(list);
+    if(SSR) {
+      register!('rendered', list);
+    } else {
+      document.getElementById('root')!.appendChild(list);
 
-    list.animate([{
-      transform: 'translateY(-20px)',
-      opacity: 0,
-    }, {}], {
-      delay: initialHome ? 700 : 200,
-      duration: 200,
-      easing: 'ease-out',
-      fill: 'backwards',
-    });
+      list.animate([{
+        transform: 'translateY(-20px)',
+        opacity: 0,
+      }, {}], {
+        delay: initialHome ? 700 : 200,
+        duration: 200,
+        easing: 'ease-out',
+        fill: 'backwards',
+      });
+    }
   }
 
   private static renderEntry(post: PostData): HTMLElement {
@@ -563,10 +590,11 @@ class Post implements RenderedEntity {
 }
 
 // About rendering is benign
+
 function initAboutGiscus() {
   const container = document.getElementById('about-giscus')!;
   if(container.childElementCount > 0) return;
   container.appendChild(renderGiscus("关于"));
 }
 
-document.addEventListener('DOMContentLoaded', bootstrap);
+if(!SSR) document.addEventListener('DOMContentLoaded', () => bootstrap());

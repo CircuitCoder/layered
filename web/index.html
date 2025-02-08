@@ -9,7 +9,7 @@
     <root id="root" style="display: none">
       <div id="scroll-sentinel"></div>
       <nav>
-        <svg id="logo"><!-- logo --></svg>
+        <svg id="logo"><!-- SSR: logo --></svg>
         <h1 id="brand">
           <span>分层</span>
         </h1>
@@ -29,7 +29,7 @@
       </nav>
 
       <div id="about">
-        <svg id="arrow"><!-- arrow --></svg>
+        <svg id="arrow"><!-- SSR: arrow --></svg>
         <div class="about-content">
           <div class="about-inner">
             <h2 class="about-title">是<a href="https://c-3.moe">喵喵</a>的博客。</h2>
@@ -50,6 +50,8 @@
           <div class="about-overlay"></div>
         </div>
       </div>
+
+      <!-- SSR: rendered -->
     </root>
     <link rel="stylesheet" href="/src/style.css" />
     <script type="module" src="/src/main.tsx"></script>

@@ -60,7 +60,10 @@ const arrow = <svg id="arrow" viewBox="0 0 38.0965290904 30.5262755052">
   />
 </svg>;
 
-export function apply() {
-  document.getElementById("logo")!.replaceWith(logo);
-  document.getElementById("arrow")!.replaceWith(arrow);
+const SSR = import.meta.env.SSR;
+export function apply(register: (key: string, value: Element) => void) {
+  if(SSR || !document.getElementById("logo")?.hasChildNodes())
+    register("logo", logo);
+  if(SSR || !document.getElementById("arrow")?.hasChildNodes())
+    register("arrow", arrow);
 }

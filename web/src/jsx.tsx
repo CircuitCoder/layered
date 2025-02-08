@@ -25,12 +25,23 @@ function evalStyleDef(def: styleDef): string {
 
 type RecursiveElement = Element | string | boolean | null | undefined | RecursiveElement[];
 type NonrecursiveElement = Element | string;
+
+type RecursiveElementSSR = string | boolean | null | undefined | RecursiveElementSSR[];
+
 function flatten(e: RecursiveElement[]): NonrecursiveElement[] {
   return e.filter(e => !!e).flatMap(e => {
     if(Array.isArray(e)) return flatten(e);
     else if(e === true) return ['true'];
     return [e];
   }) as NonrecursiveElement[];
+}
+
+function flattenSSR(e: RecursiveElementSSR[]): string[] {
+  return e.filter(e => !!e).flatMap(e => {
+    if(Array.isArray(e)) return flattenSSR(e);
+    else if(e === true) return ['true'];
+    return [e];
+  }) as string[];
 }
 
 export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...children: RecursiveElement[]) => Element {
@@ -47,8 +58,28 @@ export function jsxFactory(ns?: string): (tag: string, data: JSXData, ...childre
   }
 }
 
-export const jsx = jsxFactory();
-export const jsxSVG = jsxFactory('http://www.w3.org/2000/svg');
+export function jsxFactorySSR(ns?: string): (tag: string, data: JSXData, ...children: RecursiveElementSSR[]) => string {
+  return (tag, data, ...children) => {
+    let str = ns !== undefined ? `<${tag} xmlns="${ns}"` : `<${tag}`;
+
+    if(data?.class !== undefined) str += ` class="${evalClassDef(data.class)}"`;
+    if(data?.style !== undefined) str += ` style="${evalStyleDef(data.style)}"`;
+    if(data !== null) for(const key in data) {
+      if(key === 'class' || key === 'style') continue;
+      str += ` ${key}="${data[key]}"`;
+    }
+    str += '>';
+    str += flattenSSR(children).join('');
+    str += `</${tag}>`;
+    return str;
+  }
+}
+
+
+const SSR = import.meta.env.SSR;
+const factory = SSR ? jsxFactorySSR : jsxFactory;
+export const jsx = factory();
+export const jsxSVG = factory('http://www.w3.org/2000/svg');
 
 export namespace jsx {
   export namespace JSX {
