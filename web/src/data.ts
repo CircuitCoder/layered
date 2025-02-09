@@ -1,17 +1,13 @@
 import { Post } from "./typings/Post";
+import DATA_URL from "./data.json?url";
 
 const SSR = import.meta.env.SSR;
 
 // TODO: regular cache invalidation
 // TODO: optimistic loading
 export async function getDataInner(): Promise<Post[]> {
-  // @ts-ignore
-  if(SSR) {
-    const fs = await import('node:fs/promises');
-    return JSON.parse((await fs.readFile('./dist/client/data.json')).toString('utf-8')) as Post[];
-  }
-
-  const req = await fetch("/data.json");
+  if(SSR) return (await import('./data.json')).default;
+  const req = await fetch(DATA_URL);
   return await req.json();
 }
 
