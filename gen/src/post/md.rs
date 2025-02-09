@@ -109,6 +109,7 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
         match ev {
             Event::Start(t) => plain += match t {
                 Tag::Heading { .. } => "\n",
+                Tag::Item => "- ",
                 _ => "",
             },
             Event::End(t) => plain += match t {
@@ -119,13 +120,13 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
             | Event::Code(s)
             | Event::DisplayMath(s)
             | Event::InlineMath(s)
-            | Event::Html(s)
-            | Event::InlineHtml(s)
             | Event::FootnoteReference(s) => plain += s.as_ref(),
             Event::SoftBreak => plain += " ",
             Event::HardBreak => plain += "\n",
             Event::Rule => plain += "---\n",
             Event::TaskListMarker(c) => plain += if c { "[x] " } else { "[ ] " },
+            Event::Html(_)
+            | Event::InlineHtml(_) => {},
         }
     }
 

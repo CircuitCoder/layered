@@ -11,7 +11,7 @@
 - [x] Dark mode
 - [x] Responsive
 - [x] Fill in the about page
-- [ ] RSS
+- [x] Atom feed
 - [x] OpenGraph
 - [x] Comment section
 - [ ] Tag
