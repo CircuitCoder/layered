@@ -326,7 +326,7 @@ nav {
 
   & .line {
     transform:
-      translateY(calc(var(--line-idx)* var(--line-height) + var(--baseline-y)));
+      translateY(calc(var(--line-idx) * var(--line-height) + var(--baseline-y)));
   }
 
   & .var-group {
@@ -355,9 +355,8 @@ nav {
 .title-center {
   & .line {
     transform:
-      translateY(calc(var(--line-idx)* var(--line-height) + var(--baseline-y)))
+      translateY(calc(var(--line-idx) * var(--line-height) + var(--baseline-y)))
       translateX(calc((var(--optical-width) - var(--line-optical-width)) * var(--size) * 0.5px));
-
   }
 }
 
