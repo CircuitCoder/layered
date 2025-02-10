@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Artifacts
+src/typings
+src/data.json
+public/feed.xml

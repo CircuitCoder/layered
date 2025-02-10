@@ -7,13 +7,10 @@ export async function nextTick() {
 }
 
 export function getLinkInAnscenstor(e: EventTarget | null): string | null {
-  if(e instanceof HTMLAnchorElement)
-    return e.href;
-  else if(e instanceof SVGAElement)
-    return e.href.animVal;
-  
-  if(e instanceof Element)
-    return getLinkInAnscenstor(e.parentElement);
+  if (e instanceof HTMLAnchorElement) return e.href;
+  else if (e instanceof SVGAElement) return e.href.animVal;
+
+  if (e instanceof Element) return getLinkInAnscenstor(e.parentElement);
 
   return null;
 }
