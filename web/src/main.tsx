@@ -62,8 +62,6 @@ export async function bootstrap(
 ) {
   applyStatic(register);
 
-  // TODO(ssr): Recover current state
-
   // Render
   await reflection(initPath, null, register);
 
@@ -226,7 +224,6 @@ async function transitionRender(activator: EventTarget | null, slowEntry: boolea
     backlink = CONFIG.BASE + '/about';
   }
 
-  // TODO: actually extract this
   if(!rendered) throw new Error('Not rendered!');
   if(SSR) register!('rendered', rendered?.element);
   else {
@@ -370,8 +367,7 @@ class List implements RenderedEntity {
     const dispDate = dispTime.toLocaleString(preferredLocale, {
       dateStyle: 'medium',
     });
-    const updated = !!post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time;
-
+    const updated = !!post.metadata.update_time;
 
     // Get available space
     const viewportWidth = SSR ? SSRViewport : window.innerWidth;
@@ -441,7 +437,7 @@ class Post implements RenderedEntity {
     });
 
     let updatedTimeStr: string | null = null;
-    if(post.metadata.update_time && post.metadata.update_time !== post.metadata.publish_time) {
+    if(post.metadata.update_time) {
       const updatedTime = Temporal.Instant.from(post.metadata.update_time);
       updatedTimeStr = updatedTime.toLocaleString(preferredLocale, {
         dateStyle: 'short',
@@ -605,7 +601,6 @@ class Post implements RenderedEntity {
     }
 
     for(const grp of grps) {
-      //FIXME!!!
       const curLine = grp.parentElement;
       if(curLine !== lastLine) {
         commit(-pastXVar / 2);

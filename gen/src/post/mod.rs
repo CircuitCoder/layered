@@ -109,17 +109,12 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
         .map(
             |(filename, (pre, creation, update))| -> anyhow::Result<Post> {
                 log::info!("Processing {}", filename);
-                let creation = if let Some(c) = creation {
-                    c
-                } else {
-                    return Err(anyhow::anyhow!("{} is not created?!", filename));
-                };
-
-                let update = if update == Some(creation) {
-                    None
-                } else {
-                    update
-                };
+                let creation = creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
+                let publish_time = pre.metadata.force_publish_time.unwrap_or(creation);
+                let mut update_time = pre.metadata.force_update_time.or(update);
+                if update_time == Some(publish_time) {
+                    update_time = None;
+                }
 
                 let filename_match = filename_re
                     .captures(&filename)
@@ -135,8 +130,8 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
                         id: id.to_owned(),
                         title: pre.metadata.title,
                         tags: pre.metadata.tags,
-                        publish_time: pre.metadata.force_publish_time.unwrap_or(creation),
-                        update_time: pre.metadata.force_update_time.or(update),
+                        publish_time,
+                        update_time,
                         title_outline,
                     },
                 })

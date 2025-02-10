@@ -35,8 +35,6 @@ async function work() {
   await fs.mkdir('./dist/render', { recursive: true });
   await fs.mkdir('./dist/render/post', { recursive: true });
 
-  // TODO: move about into dynamic rendering, so we can also render about
-
   // Prerender root
   await renderPath('/');
   await renderPath('/about');
