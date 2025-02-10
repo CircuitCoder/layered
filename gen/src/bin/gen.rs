@@ -15,7 +15,7 @@ struct Args {
     title_font: PathBuf,
 
     /// Output path
-    #[arg(short, long, default_value="out")]
+    #[arg(short, long, default_value = "out")]
     output: PathBuf,
 
     /// Variable wght
@@ -23,11 +23,11 @@ struct Args {
     wght: Option<f32>,
 
     /// Feed generation
-    #[arg(short, long, requires="feed_cfg")]
+    #[arg(short, long, requires = "feed_cfg")]
     feed: Option<PathBuf>,
 
     /// Feed configuration
-    #[arg(long, requires="feed")]
+    #[arg(long, requires = "feed")]
     feed_cfg: Option<PathBuf>,
 }
 
@@ -38,7 +38,9 @@ fn main() -> anyhow::Result<()> {
     let feed_cfg: Option<FeedConfig> = if let Some(ref p) = args.feed_cfg {
         let file = File::open(p)?;
         serde_json::from_reader(file)?
-    } else { None };
+    } else {
+        None
+    };
 
     log::info!("Loading font from {}", args.title_font.display());
     let mut font_file = File::open(args.title_font)?;

@@ -2,9 +2,9 @@ use std::iter::Iterator;
 
 use syntect::dumps::from_uncompressed_data;
 use syntect::easy::HighlightLines;
-use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::highlighting::{Color, Theme, ThemeSet};
 use syntect::html::{append_highlighted_html_for_styled_line, IncludeBackground};
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::util::LinesWithEndings;
 
 pub struct ParsedMarkdown {
@@ -20,7 +20,13 @@ pub struct PartialMetadata {
     pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
 }
 
-fn highlight_code_html(code: &str, lang: &str, ss: &SyntaxSet, syntax: &SyntaxReference, theme: &Theme) -> Result<String, syntect::Error> {
+fn highlight_code_html(
+    code: &str,
+    lang: &str,
+    ss: &SyntaxSet,
+    syntax: &SyntaxReference,
+    theme: &Theme,
+) -> Result<String, syntect::Error> {
     let bg = theme.settings.background.unwrap_or(Color::WHITE);
     let mut highlighter = HighlightLines::new(syntax, theme);
     let mut output = format!(
@@ -61,44 +67,57 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
     };
 
     let parser = pulldown_cmark::Parser::new_ext(content.trim(), pulldown_cmark::Options::all());
-    let mapped = std::pin::pin!(#[coroutine] static move || {
-        use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
+    let mapped = std::pin::pin!(
+        #[coroutine]
+        static move || {
+            use pulldown_cmark::{CodeBlockKind, Event, Tag, TagEnd};
 
-        let ss: SyntaxSet = from_uncompressed_data(include_bytes!(env!("SYNTAX_PACK"))).unwrap();
-        let ts = ThemeSet::load_defaults();
-        let theme = &ts.themes["Solarized (dark)"];
-        let mut codeblock = String::new();
-        let mut in_codeblock = None;
+            let ss: SyntaxSet =
+                from_uncompressed_data(include_bytes!(env!("SYNTAX_PACK"))).unwrap();
+            let ts = ThemeSet::load_defaults();
+            let theme = &ts.themes["Solarized (dark)"];
+            let mut codeblock = String::new();
+            let mut in_codeblock = None;
 
-        for syn in ss.syntaxes() {
-            log::debug!("Supported syntax: {}", syn.name);
-        }
+            for syn in ss.syntaxes() {
+                log::debug!("Supported syntax: {}", syn.name);
+            }
 
-        for event in parser.into_iter() {
-            match event {
-                Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
-                if lang.as_ref() != "" && let Some(syntax) = ss.find_syntax_by_token(lang.as_ref()) => {
-                    in_codeblock = Some((lang, syntax));
-                }
-                Event::End(TagEnd::CodeBlock) if let Some((lang, syntax)) = in_codeblock => {
-                    let html = highlight_code_html(&codeblock, lang.as_ref(), &ss, syntax, theme).unwrap();
-                    in_codeblock = None;
-                    codeblock.clear();
+            for event in parser.into_iter() {
+                match event {
+                    Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(lang)))
+                        if lang.as_ref() != ""
+                            && let Some(syntax) = ss.find_syntax_by_token(lang.as_ref()) =>
+                    {
+                        in_codeblock = Some((lang, syntax));
+                    }
+                    Event::End(TagEnd::CodeBlock) if let Some((lang, syntax)) = in_codeblock => {
+                        let html =
+                            highlight_code_html(&codeblock, lang.as_ref(), &ss, syntax, theme)
+                                .unwrap();
+                        in_codeblock = None;
+                        codeblock.clear();
 
-                    yield Event::Html(
-                        format!("<div class=\"highlighted highlighted-{}\">{}</div>", lang.as_ref(), html).into(),
-                    );
-                }
-                Event::Text(text) if in_codeblock.is_some() => {
-                    codeblock.push_str(text.as_ref());
-                }
-                e => {
-                    assert!(in_codeblock.is_none());
-                    yield e;
+                        yield Event::Html(
+                            format!(
+                                "<div class=\"highlighted highlighted-{}\">{}</div>",
+                                lang.as_ref(),
+                                html
+                            )
+                            .into(),
+                        );
+                    }
+                    Event::Text(text) if in_codeblock.is_some() => {
+                        codeblock.push_str(text.as_ref());
+                    }
+                    e => {
+                        assert!(in_codeblock.is_none());
+                        yield e;
+                    }
                 }
             }
         }
-    });
+    );
     let mut html = String::new();
     pulldown_cmark::html::push_html(&mut html, std::iter::from_coroutine(mapped));
 
@@ -107,15 +126,23 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
     for ev in pulldown_cmark::Parser::new_ext(content.trim(), pulldown_cmark::Options::all()) {
         use pulldown_cmark::{Event, Tag, TagEnd};
         match ev {
-            Event::Start(t) => plain += match t {
-                Tag::Heading { .. } => "\n",
-                Tag::Item => "- ",
-                _ => "",
-            },
-            Event::End(t) => plain += match t {
-                TagEnd::Paragraph | TagEnd::BlockQuote(_) | TagEnd::CodeBlock | TagEnd::Heading(_) | TagEnd::Item => "\n",
-                _ => "",
-            },
+            Event::Start(t) => {
+                plain += match t {
+                    Tag::Heading { .. } => "\n",
+                    Tag::Item => "- ",
+                    _ => "",
+                }
+            }
+            Event::End(t) => {
+                plain += match t {
+                    TagEnd::Paragraph
+                    | TagEnd::BlockQuote(_)
+                    | TagEnd::CodeBlock
+                    | TagEnd::Heading(_)
+                    | TagEnd::Item => "\n",
+                    _ => "",
+                }
+            }
             Event::Text(s)
             | Event::Code(s)
             | Event::DisplayMath(s)
@@ -125,12 +152,15 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
             Event::HardBreak => plain += "\n",
             Event::Rule => plain += "---\n",
             Event::TaskListMarker(c) => plain += if c { "[x] " } else { "[ ] " },
-            Event::Html(_)
-            | Event::InlineHtml(_) => {},
+            Event::Html(_) | Event::InlineHtml(_) => {}
         }
     }
 
-    Ok(ParsedMarkdown { metadata, html, plain })
+    Ok(ParsedMarkdown {
+        metadata,
+        html,
+        plain,
+    })
 }
 
 fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {

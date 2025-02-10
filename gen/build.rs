@@ -13,5 +13,8 @@ fn main() {
 
     println!("cargo::rerun-if-changed=build.rs");
     println!("cargo::rerun-if-changed=syntaxes");
-    println!("cargo::rustc-env=SYNTAX_PACK={}", dest_path.canonicalize().unwrap().display());
+    println!(
+        "cargo::rustc-env=SYNTAX_PACK={}",
+        dest_path.canonicalize().unwrap().display()
+    );
 }

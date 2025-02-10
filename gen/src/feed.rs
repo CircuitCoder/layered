@@ -18,7 +18,11 @@ fn entry(cfg: &FeedConfig, post: &Post) -> anyhow::Result<Entry> {
     let entry = EntryBuilder::default()
         .id(uri.clone())
         .title(post.metadata.title.clone())
-        .updated(post.metadata.update_time.unwrap_or(post.metadata.publish_time))
+        .updated(
+            post.metadata
+                .update_time
+                .unwrap_or(post.metadata.publish_time),
+        )
         .link(
             LinkBuilder::default()
                 .href(uri)
@@ -34,9 +38,11 @@ fn entry(cfg: &FeedConfig, post: &Post) -> anyhow::Result<Entry> {
 }
 
 pub fn feed(cfg: &FeedConfig, posts: &[Post]) -> anyhow::Result<Feed> {
-    let latest_modification = posts.iter().map(
-        |p| p.metadata.update_time.unwrap_or(p.metadata.publish_time)
-    ).max().unwrap();
+    let latest_modification = posts
+        .iter()
+        .map(|p| p.metadata.update_time.unwrap_or(p.metadata.publish_time))
+        .max()
+        .unwrap();
 
     let entries: Vec<_> = posts.iter().map(|p| entry(cfg, p)).try_collect()?;
 

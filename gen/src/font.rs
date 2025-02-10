@@ -6,11 +6,10 @@ use ttf_parser::Rect;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
-#[derive(ts_rs::TS)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
-#[serde(tag = "ty", content = "spec")] 
+#[serde(tag = "ty", content = "spec")]
 pub enum OutlineCmd {
     Move(f64, f64),
     Line(f64, f64),
@@ -69,15 +68,14 @@ impl OutlineCmd {
                 path,
                 lyon_path::FillRule::EvenOdd,
                 1e-5,
-            )
+            ),
         }
     }
 }
 
 pub type Outline = Vec<OutlineCmd>;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug)]
-#[derive(ts_rs::TS)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct BBox {
     pub top: f64,
@@ -101,15 +99,18 @@ fn serialize_outline(outline: &Outline, em: f64) -> String {
     for cmd in outline {
         match cmd {
             OutlineCmd::Move(x, y) => {
-                ret.push_str(&format!("M {} {}", x / em, - y / em));
+                ret.push_str(&format!("M {} {}", x / em, -y / em));
             }
             OutlineCmd::Line(x, y) => {
-                ret.push_str(&format!("L {} {}", x / em, - y / em));
+                ret.push_str(&format!("L {} {}", x / em, -y / em));
             }
             OutlineCmd::Quad { to, ctrl } => {
                 ret.push_str(&format!(
                     "Q {} {} {} {}",
-                    ctrl.0 / em, - ctrl.1 / em, to.0 / em, - to.1 / em
+                    ctrl.0 / em,
+                    -ctrl.1 / em,
+                    to.0 / em,
+                    -to.1 / em
                 ));
             }
             OutlineCmd::Cubic {
@@ -120,11 +121,11 @@ fn serialize_outline(outline: &Outline, em: f64) -> String {
                 ret.push_str(&format!(
                     "C {} {} {} {} {} {}",
                     ctrl_first.0 / em,
-                    - ctrl_first.1 / em,
+                    -ctrl_first.1 / em,
                     ctrl_second.0 / em,
-                    - ctrl_second.1 / em,
+                    -ctrl_second.1 / em,
                     to.0 / em,
-                    - to.1 / em
+                    -to.1 / em
                 ));
             }
             OutlineCmd::Close => {
@@ -135,8 +136,7 @@ fn serialize_outline(outline: &Outline, em: f64) -> String {
     ret
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[derive(ts_rs::TS)]
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct CharResp {
     #[ts(type = "string")]
@@ -147,8 +147,7 @@ pub struct CharResp {
     pub hadv: f64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[derive(ts_rs::TS)]
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct TitleResp {
     pub chars: Vec<CharResp>,
@@ -364,30 +363,36 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
     // let mut char_resp = CharResp::new(c);
     let mut builder = OutlineBuilder::default();
 
-    let bbox = match face
-        .outline_glyph(glyph, &mut builder) {
-            Some(bbox) => bbox,
-            None => {
-                log::warn!("Glyph \"{}\" has corrupted outline.", c);
-                // Manually craft an bbox
-                Rect {
-                    x_min: 0,
-                    x_max: 0,
-                    y_min: 0,
-                    y_max: 0,
-                }
+    let bbox = match face.outline_glyph(glyph, &mut builder) {
+        Some(bbox) => bbox,
+        None => {
+            log::warn!("Glyph \"{}\" has corrupted outline.", c);
+            // Manually craft an bbox
+            Rect {
+                x_min: 0,
+                x_max: 0,
+                y_min: 0,
+                y_max: 0,
             }
-        };
+        }
+    };
 
-    let hadv = face.glyph_hor_advance(glyph).ok_or_else(|| anyhow::anyhow!("Glyph '{}' has no outline and hor adv", c))?;
+    let hadv = face
+        .glyph_hor_advance(glyph)
+        .ok_or_else(|| anyhow::anyhow!("Glyph '{}' has no outline and hor adv", c))?;
 
     let mut components = split_components(builder.outline);
     components.sort_by(|a, b| {
-        let a_bbox = lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(a.iter().cloned()));
-        let b_bbox = lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(b.iter().cloned()));
+        let a_bbox =
+            lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(a.iter().cloned()));
+        let b_bbox =
+            lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(b.iter().cloned()));
         return a_bbox.min.x.partial_cmp(&b_bbox.min.x).unwrap();
     });
-    let components_serialized = components.iter().map(|c| serialize_outline(c, em)).collect();
+    let components_serialized = components
+        .iter()
+        .map(|c| serialize_outline(c, em))
+        .collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
     let r = Ok(CharResp {
@@ -408,7 +413,10 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
 
 pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<TitleResp> {
     let em = face.units_per_em();
-    let chars: anyhow::Result<Vec<_>> = title.chars().map(|c| parse_char(c, em as f64, face)).collect();
+    let chars: anyhow::Result<Vec<_>> = title
+        .chars()
+        .map(|c| parse_char(c, em as f64, face))
+        .collect();
     let chars = chars?;
 
     Ok(TitleResp {

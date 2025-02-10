@@ -9,8 +9,7 @@ use crate::{font::TitleResp, post::md::ParsedMarkdown};
 
 mod md;
 
-#[derive(Debug, Serialize)]
-#[derive(ts_rs::TS)]
+#[derive(Debug, Serialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
 pub struct Post {
@@ -21,8 +20,7 @@ pub struct Post {
 
 type DT = chrono::DateTime<chrono::FixedOffset>;
 
-#[derive(Debug, Serialize)]
-#[derive(ts_rs::TS)]
+#[derive(Debug, Serialize, ts_rs::TS)]
 #[serde(rename_all = "lowercase")]
 pub struct Metadata {
     pub id: String,
@@ -105,11 +103,13 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
 
     let filename_re = Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.md").unwrap();
 
-    let output: anyhow::Result<Vec<_>> = pre.into_iter()
+    let output: anyhow::Result<Vec<_>> = pre
+        .into_iter()
         .map(
             |(filename, (pre, creation, update))| -> anyhow::Result<Post> {
                 log::info!("Processing {}", filename);
-                let creation = creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
+                let creation =
+                    creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
                 let publish_time = pre.metadata.force_publish_time.unwrap_or(creation);
                 let mut update_time = pre.metadata.force_update_time.or(update);
                 if update_time == Some(publish_time) {
@@ -121,7 +121,8 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
                     .ok_or_else(|| anyhow::anyhow!("Unable to parse filename: {}", filename))?;
                 let id = filename_match.get(1).unwrap().as_str();
 
-                let title_outline: TitleResp = crate::font::parse_title(&pre.metadata.title, title_font)?;
+                let title_outline: TitleResp =
+                    crate::font::parse_title(&pre.metadata.title, title_font)?;
 
                 Ok(Post {
                     html: pre.html,
