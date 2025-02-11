@@ -1,6 +1,8 @@
 use std::collections::HashSet;
+use std::io::Write;
 
 use lyon_path::PathEvent;
+use tempfile::NamedTempFile;
 use ttf_parser::Rect;
 
 use serde::Deserialize;
@@ -425,4 +427,40 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
         asc: face.ascender() as f64 / em as f64,
         des: face.descender() as f64 / em as f64,
     })
+}
+
+pub fn generate_subset_to<'a>(
+    src: impl AsRef<std::path::Path>,
+    ss: impl Iterator<Item = &'a str>,
+    output: impl AsRef<std::path::Path>,
+) -> anyhow::Result<()> {
+    let mut tmp_txt = NamedTempFile::new()?;
+    let mut buf_tmp_txt = std::io::BufWriter::new(tmp_txt.as_file_mut());
+    for s in ss {
+        buf_tmp_txt.write(s.as_bytes())?;
+    }
+    buf_tmp_txt.flush()?;
+    drop(buf_tmp_txt);
+
+    log::debug!(
+        "Subsetting font to {}, temp file: {}",
+        output.as_ref().display(),
+        tmp_txt.path().display()
+    );
+    let mut child = std::process::Command::new("pyftsubset")
+        .args(&[
+            src.as_ref().to_string_lossy().as_ref(),
+            "--unicodes=00-7F",
+            &format!("--text-file={}", tmp_txt.path().display()),
+            "--flavor=woff2",
+            "--layout-features='*'",
+            &format!("--output-file={}", output.as_ref().display()),
+        ])
+        .spawn()?;
+    let ret = child.wait()?;
+    if !ret.success() {
+        return Err(anyhow::anyhow!("pyftsubset failed"));
+    }
+
+    Ok(())
 }

@@ -29,6 +29,10 @@ struct Args {
     /// Feed configuration
     #[arg(long, requires = "feed")]
     feed_cfg: Option<PathBuf>,
+
+    /// Font subset output
+    #[arg(long)]
+    subset_font: Option<PathBuf>,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -43,7 +47,7 @@ fn main() -> anyhow::Result<()> {
     };
 
     log::info!("Loading font from {}", args.title_font.display());
-    let mut font_file = File::open(args.title_font)?;
+    let mut font_file = File::open(&args.title_font)?;
     let mut font_buf = Vec::new();
     font_file.read_to_end(&mut font_buf)?;
     let mut font: ttf_parser::Face = ttf_parser::Face::parse(font_buf.as_slice(), 0)?;
@@ -69,6 +73,19 @@ fn main() -> anyhow::Result<()> {
 
         let feed = gen::feed::feed(&f, &posts)?;
         feed.write_to(File::create(dst)?)?;
+    }
+
+    if let Some(f) = args.subset_font {
+        log::info!("Generating subset font to: {}", f.display());
+        gen::font::generate_subset_to(
+            &args.title_font,
+            std::iter::once("分层").chain(
+                posts
+                    .iter()
+                    .map(|p: &gen::post::Post| p.metadata.title.as_str()),
+            ),
+            f,
+        )?;
     }
 
     Ok(())

@@ -51,6 +51,14 @@ a {
 
 /* Root */
 
+@font-face {
+  font-family: "Source Han Serif SC Subset";
+  font-style: normal;
+  font-weight: 400;
+  src: url("/assets/subset.woff2") format("woff2 supports variations");
+  font-weight: 100 900;
+}
+
 :root {
   font-family: "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
   color-scheme: light dark;
@@ -224,7 +232,7 @@ root {
 }
 
 #brand {
-  font-family: "Source Serif Pro", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
+  font-family: "Source Serif Pro", "Source Han Serif SC Subset", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
   font-weight: 900;
   font-size: 48px;
   position: fixed;
@@ -405,6 +413,8 @@ nav {
   line-height: 40px;
   overflow: hidden;
   color: transparent;
+  font-family: "Source Serif Pro", "Source Han Serif SC Subset", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
+  font-weight: 900;
 }
 
 .entry-time {
