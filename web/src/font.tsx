@@ -2,13 +2,13 @@ import { TitleResp } from "./typings/TitleResp";
 import { jsxSVG as jsx } from "./jsx";
 import { GroupResp } from "./typings/GroupResp";
 
-type RenderDimensions = {
+export type RenderDimensions = {
   totalWidth: number;
   opticalWidth: number;
   lineCnt: number;
 };
 
-type WidthLine = {
+export type WidthLine = {
   optWidth: number;
   fullWidth: number;
   line: GroupResp[];

@@ -7,6 +7,7 @@ import {
   render as renderLine,
   materialize as materializeLine,
   getStrokeDist,
+  RenderDimensions,
 } from "./font";
 import { jsx, clone as cloneNode } from "./jsx";
 import * as Icons from "./icons";
@@ -14,6 +15,7 @@ import * as CONFIG from "./config";
 
 import { Temporal } from "@js-temporal/polyfill";
 import "giscus";
+import { TitleResp } from "./typings/TitleResp";
 
 /**
  * Application bootstrap
@@ -46,7 +48,6 @@ interface RenderedEntity {
 }
 
 const SSR = import.meta.env.SSR;
-const SSRViewport = 1920;
 
 let state: State = { ty: "Vacant" };
 let rendered: RenderedEntity | null = null;
@@ -353,6 +354,37 @@ function rehydrate(key: string, cls?: string): HTMLElement | null {
   return queried as HTMLElement | null;
 }
 
+export function surrogateTitle(
+  spec: TitleResp,
+  text: string,
+): Element {
+  return <div class="surrogate-title">
+    {text}
+    <script type="application/json">
+      {JSON.stringify(spec)}
+    </script>
+  </div>;
+}
+
+export function hydratedTitle(
+  spec: TitleResp,
+  maxWidth: number,
+  additionalClasses?: string[],
+): [Element, RenderDimensions] {
+  const rendered = renderLine(spec, maxWidth);
+  return [materializeLine(...rendered, additionalClasses), rendered[1]];
+}
+
+export function renderTitle(
+  spec: TitleResp,
+  text: string,
+  getMaxWidth: () => number,
+  additionalClasses?: string[],
+): [Element, RenderDimensions?] {
+  if(SSR) return [surrogateTitle(spec, text), undefined];
+  return hydratedTitle(spec, getMaxWidth(), additionalClasses);
+}
+
 /**
  * List rendering
  */
@@ -370,6 +402,12 @@ class List implements RenderedEntity {
       if (!rehydrated) throw new Error("Hydration failed!");
       // TODO: retry render
       this.element = rehydrated;
+
+      this.element.querySelectorAll(".surrogate-title").forEach((el) => {
+        const spec = JSON.parse(el.querySelector(":scope > script")!.textContent!);
+        const [hydrated] = hydratedTitle(spec, List.getTitleSpace() / 24);
+        el.replaceWith(hydrated);
+      })
       return;
     }
     if (SSR) register!(":prerendered", "list");
@@ -398,6 +436,13 @@ class List implements RenderedEntity {
     return this;
   }
 
+  private static getTitleSpace() : number {
+    // Get available space
+    const viewportWidth = window.innerWidth;
+    if (viewportWidth > 500) return Math.max(viewportWidth - 120, 400);
+    else return viewportWidth - 80;
+  }
+
   private static renderEntry(post: PostData): HTMLElement {
     const dispTime = Temporal.Instant.from(post.metadata.publish_time);
     const dispDate = dispTime.toLocaleString(preferredLocale, {
@@ -405,17 +450,7 @@ class List implements RenderedEntity {
     });
     const updated = !!post.metadata.update_time;
 
-    // Get available space
-    const viewportWidth = SSR ? SSRViewport : window.innerWidth;
-    let titleWidth: number;
-    if (viewportWidth > 500) titleWidth = Math.max(viewportWidth - 120, 400);
-    else titleWidth = viewportWidth - 80;
-
-    const [lineSpec, lineDim] = renderLine(
-      post.metadata.title_outline,
-      titleWidth / 24,
-    );
-    const line = materializeLine(lineSpec, lineDim);
+    const [line] = renderTitle(post.metadata.title_outline, post.metadata.title, () => List.getTitleSpace() / 24);
 
     return (
       <div class="entry">
@@ -467,19 +502,25 @@ class Post implements RenderedEntity {
       const rehydrated = rehydrate(key);
       if (!rehydrated) throw new Error("Hydration failed!");
       this.element = rehydrated;
+
+      this.element.querySelectorAll(".surrogate-title").forEach((el) => {
+        const spec = JSON.parse(el.querySelector(":scope > script")!.textContent!);
+        const isAux = el.parentElement?.classList.contains("post-metadata-aux");
+        const maxWidth = isAux ? Post.getAuxTitleSpace() / 16 : Post.getTitleSpace() / 48;
+        const [hydrated, dim] = hydratedTitle(spec, maxWidth, !isAux ? ["title-center"] : []);
+
+        if(!isAux)
+          el.parentElement?.style.setProperty("--title-line-cnt", dim.lineCnt.toString());
+        el.replaceWith(hydrated);
+      })
+
       return;
     }
     if (SSR) register!(":prerendered", "post");
 
     // Get available space
-    const viewportWidth = SSR ? SSRViewport : window.innerWidth;
-    let titleWidth: number;
-    if (viewportWidth > 800) titleWidth = Math.min(viewportWidth - 300, 900);
-    else if (viewportWidth > 500) titleWidth = viewportWidth - 120;
-    else titleWidth = viewportWidth - 80;
 
-    const titleSpec = renderLine(post.metadata.title_outline, titleWidth / 48);
-    const title = materializeLine(...titleSpec, ["title-center"]);
+    const [title, titleDim] = renderTitle(post.metadata.title_outline, post.metadata.title, () => Post.getTitleSpace() / 48, ["title-center"]);
 
     const content = <div __html={post.html} class="post-content"></div>;
 
@@ -526,14 +567,7 @@ class Post implements RenderedEntity {
 
     const metadata = genMetadata("post-metadata", []);
 
-    // Get available space
-    let auxTitleWidth: number;
-    if (viewportWidth > 800) auxTitleWidth = 160;
-    else auxTitleWidth = viewportWidth - 260;
-
-    const auxTitle = materializeLine(
-      ...renderLine(post.metadata.title_outline, auxTitleWidth / 16),
-    );
+    const [auxTitle] = renderTitle(post.metadata.title_outline, post.metadata.title, () => Post.getAuxTitleSpace() / 16);
 
     const auxMetadata = genMetadata("post-metadata-aux", [auxTitle]);
 
@@ -549,7 +583,7 @@ class Post implements RenderedEntity {
       <div
         class="post"
         style={{
-          "--title-line-cnt": titleSpec[1].lineCnt.toString(),
+          "--title-line-cnt": (titleDim?.lineCnt ?? 1).toString(),
         }}
       >
         {title}
@@ -557,6 +591,19 @@ class Post implements RenderedEntity {
         {contentWrapper}
       </div>
     );
+  }
+
+  private static getTitleSpace(): number {
+    const viewportWidth = window.innerWidth;
+    if (viewportWidth > 800) return Math.min(viewportWidth - 300, 900);
+    else if (viewportWidth > 500) return viewportWidth - 120;
+    else return viewportWidth - 80;
+  }
+
+  private static getAuxTitleSpace(): number {
+    const viewportWidth = window.innerWidth;
+    if (viewportWidth > 800) return 160;
+    else return viewportWidth - 260;
   }
 
   entry(renderedTitle: SVGSVGElement | null): Post {
