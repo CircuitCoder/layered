@@ -18,6 +18,24 @@
   initial-value: 0;
 }
 
+@property --var-scale {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 1;
+}
+
+@property --var-offset-x {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --var-offset-y {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0;
+}
+
 /* Resets */
 
 * {
@@ -103,9 +121,6 @@ a {
 root {
   /* Defaults for noscript */
   --scroll: 0;
-  --var-scale: 1;
-  --var-offset-x: 0px;
-  --var-offset-y: 0px;
 }
 
 #scroll-sentinel {
@@ -343,17 +358,16 @@ nav {
      * Remember to sync the following declaration to .post-title,
      * .post-metadata-aux .title, and also applyTitleVariation !
      */
-    transform:
-      scale(var(--size))
-      translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
+    transform: translateX(calc(1px * var(--grp-line-xdiff, var(--grp-xdiff)) * var(--size)));
   }
 
   & .glyph {
-    transform: translateX(var(--in-grp-xdiff));
+    transform: translateX(calc(1px * var(--in-grp-xdiff) * var(--size) * var(--var-scale)));
   }
 
   & path {
     transform-origin: 0 0;
+    transform: scale(calc(var(--size) * var(--var-scale)));
   }
 
   pointer-events: none;
@@ -475,13 +489,14 @@ nav {
 
   & .var-group {
     transform:
-      translateY(calc(0px - 1px * var(--scroll, 0) * (var(--var-scale) - 0.5) / 2))
-      scale(var(--size))
-      translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
-      translate(var(--var-offset-x, 0px), var(--var-offset-y, 0px))
-      scale(var(--var-scale, 1));
+      translate(
+        calc((var(--var-offset-x, 0px) + 1px * var(--grp-line-xdiff, var(--grp-xdiff))) * var(--size)),
+        calc(var(--var-offset-y, 0px) * var(--size) + 
+          (0px - 1px * var(--scroll, 0) * (var(--var-scale) - 0.5) / 2)
+        )
+      );
 
-    filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 500));
+    filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 10));
     opacity: calc(1 - var(--scroll, 0) * (var(--var-scale) - 0.5) / 200);
   }
 }
@@ -624,8 +639,7 @@ nav {
         opacity: 0;
         transform:
           translateX(-5px)
-          scale(var(--size))
-          translateX(var(--grp-line-xdiff, var(--grp-xdiff)));
+          translateX(calc(1px * var(--grp-line-xdiff, var(--grp-xdiff)) * var(--size)));
       }
     }
   }

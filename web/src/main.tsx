@@ -3,7 +3,7 @@ import { apply as applyStatic, arrow } from "./static";
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
-import { render as renderLine, materialize as materializeLine } from "./font";
+import { render as renderLine, materialize as materializeLine, getStrokeDist } from "./font";
 import { jsx, clone as cloneNode } from "./jsx";
 import * as Icons from "./icons";
 import * as CONFIG from "./config";
@@ -624,47 +624,17 @@ class Post implements RenderedEntity {
     this.observer?.disconnect();
   }
 
-  private static applyTitleVariation(
+  private static async applyTitleVariation(
     title: SVGElement,
     ref: SVGElement | null = null,
   ) {
     // Query location prior to applying variation
 
-    let deltas: { dx: number; dy: number; scale: number }[] | null = null;
     const grps = Array.from(
       title.querySelectorAll("g.var-group") as NodeListOf<
         HTMLElement | SVGElement
       >,
     );
-    if (ref !== null) {
-      const refGrps = ref?.querySelectorAll("g.var-group") as NodeListOf<
-        HTMLElement | SVGElement
-      >;
-      deltas = grps.map((grp, i) => {
-        const r = refGrps[i];
-
-        // TODO: do not hard code scale
-
-        // It's really hard to figure out the relative position
-        // when considering overarching scaling
-        // So we pre-set the target FLIP scale and then ask
-        // what's the delta
-
-        // Also, temporarily override scroll
-        grp.style.setProperty("--var-scale", "0.5");
-        grp.style.setProperty("--scroll", "0");
-        const curLoc = grp.getBoundingClientRect();
-        const refLoc = r.getBoundingClientRect();
-
-        grp.style.removeProperty("--scroll");
-        return {
-          dx: refLoc.x - curLoc.x,
-          dy: refLoc.y - curLoc.y,
-          scale: 0.5,
-        };
-      });
-    }
-
     let pastXVar = 0;
     let lastLine = grps[0]?.parentElement;
 
@@ -694,28 +664,42 @@ class Post implements RenderedEntity {
     }
     commit(-pastXVar / 2);
 
-    if (deltas) {
-      grps.forEach((grp, i) => {
-        grp.animate(
-          [
-            {
-              transform: `
-              translate(${deltas[i].dx}px, ${deltas[i].dy}px)
-              scale(var(--size))
-              translateX(var(--grp-line-xdiff, var(--grp-xdiff)))
-              scale(${deltas[i].scale})
-            `,
-            },
-            {},
-          ],
-          {
-            delay: i * 50,
-            duration: 200,
-            easing: "cubic-bezier(0, 0, 0, 1)",
-            fill: "both",
-          },
-        );
-      });
+    if (ref !== null) {
+      const refStrokes = ref?.querySelectorAll("g.var-group path") as NodeListOf<SVGPathElement>;
+      const strokes = title.querySelectorAll("g.var-group path") as NodeListOf<SVGPathElement>;
+
+      const animations = Array.from(strokes).map((stroke, i) => {
+        const refStroke = refStrokes[i];
+
+        // TODO: do not hard code scale
+
+        // It's really hard to figure out the relative position
+        // when considering overarching scaling
+        // So we pre-set the target FLIP scale and then ask
+        // what's the delta
+
+        stroke.style.setProperty('transform', `scale(24)`); // Origional scale
+        const bbox = stroke.getBoundingClientRect();
+        const refBbox = refStroke.getBoundingClientRect();
+
+        stroke.style.removeProperty('transform');
+        const dist = getStrokeDist(stroke, 24);
+        return { dx: refBbox.x - bbox.x, dy: refBbox.y - bbox.y, dist, stroke };
+      })
+
+      for(const { dx, dy, dist, stroke } of animations) {
+        stroke.animate([{
+          transform: `
+          translate(${dx}px, ${dy}px)
+          scale(24)
+          `
+        }, {}], {
+          delay: dist * 2,
+          duration: 200,
+          easing: "cubic-bezier(0, 0, 0, 1)",
+          fill: "both",
+        })
+      };
     }
   }
 
@@ -727,25 +711,14 @@ class Post implements RenderedEntity {
       title.querySelectorAll("g.var-group path"),
     ) as SVGPathElement[];
     const promises = strokes.map((stroke, _i) => {
-      const bbox = stroke.getBoundingClientRect();
-      const parentBbox = stroke.parentElement!.getBoundingClientRect();
-      const inGrpXdiff =
-        stroke.parentElement!.style.getPropertyValue("--in-grp-xdiff");
-      const grpXdiff =
-        stroke.parentElement!.parentElement!.style.getPropertyValue(
-          "--grp-xdiff",
-        );
-      const dist =
-        bbox.x -
-        parentBbox.x +
-        (parseFloat(inGrpXdiff) + parseFloat(grpXdiff)) * 48;
+      const dist = getStrokeDist(stroke, 48);
 
-      const offsetX = entry ? randomWithin(-1, 0.7) : randomWithin(-0.2, 0.5);
-      const offsetY = entry ? randomWithin(-1, 0.7) : randomWithin(-0.2, 0.5);
+      const offsetX = entry ? randomWithin(-50, 35) : randomWithin(-10, 25);
+      const offsetY = entry ? randomWithin(-50, 35) : randomWithin(-10, 25);
       const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
 
       const freeKeyframe = {
-        transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+        transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale}) scale(var(--size))`,
         opacity: 0,
       };
 

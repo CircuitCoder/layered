@@ -38,7 +38,7 @@ export function materialize(
           <g
             class="glyph"
             style={{
-              "--in-grp-xdiff": grpAccum.toString() + "px",
+              "--in-grp-xdiff": grpAccum.toString(),
             }}
           >
             {chr.components.map((comp) => (
@@ -56,9 +56,9 @@ export function materialize(
           style={{
             "--local-grp-idx": localGrpIdx.toString(),
             "--grp-idx": grpCnt.toString(),
-            "--grp-line-xdiff": lineAccum.toString() + "px",
+            "--grp-line-xdiff": lineAccum.toString(),
             "--grp-width": grp.hadv.toString(),
-            "--grp-xdiff": globalXdiff.toString() + "px",
+            "--grp-xdiff": globalXdiff.toString(),
           }}
           data-text={grp.text}
         >
@@ -160,4 +160,21 @@ export function render(
   };
 
   return [widthLines, dimensions];
+}
+
+export function getStrokeDist(stroke: SVGPathElement, size: number): number {
+  const bbox = stroke.getBoundingClientRect();
+  const parentBbox = stroke.parentElement!.getBoundingClientRect();
+  const inGrpXdiff =
+    stroke.parentElement!.style.getPropertyValue("--in-grp-xdiff");
+  const grpXdiff =
+    stroke.parentElement!.parentElement!.style.getPropertyValue(
+      "--grp-xdiff",
+    );
+  console.log(inGrpXdiff, grpXdiff, bbox, parentBbox);
+  return (
+    bbox.x -
+    parentBbox.x +
+    (parseFloat(inGrpXdiff) + parseFloat(grpXdiff)) * size
+  )
 }
