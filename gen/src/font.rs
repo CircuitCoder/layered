@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::collections::HashSet;
 use std::io::Write;
 
@@ -152,11 +152,13 @@ pub struct CharResp {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct GroupResp {
     pub chars: Vec<CharResp>,
     pub text: String,
     pub hadv: f64,
+    pub break_after: bool,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
@@ -428,22 +430,23 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
 
     // Segmentation & line-break
     use unicode_segmentation::UnicodeSegmentation;
-    let segmented: BTreeSet<usize> =
-        title.split_word_bound_indices().map(|(i, _)| i)
+    let segmented: BTreeMap<usize, bool> =
+        title.split_word_bound_indices().map(|(i, _)| (i, false))
         .chain(unicode_linebreak::linebreaks(title).map(|(i, opp)| {
             assert!(opp == unicode_linebreak::BreakOpportunity::Allowed || i == title.len(), "Unexpected line break in title");
-            i
+            (i, true)
         }))
         .collect();
-    let segs = segmented.iter().tuple_windows().map(|(a, b)| &title[*a..*b]);
-    let groups = segs.map(|s| -> anyhow::Result<GroupResp> {
+    let segs = segmented.iter().tuple_windows().map(|((aptr, _), (bptr, bbp))| (&title[*aptr..*bptr], *bbp));
+    let groups = segs.map(|(s, break_after)| -> anyhow::Result<GroupResp> {
         let chars = s.chars()
-            .map(|c| parse_char(c, em as f64, face))
+            .map(|c: char| parse_char(c, em as f64, face))
             .collect::<anyhow::Result<Vec<_>>>()?;
         let hadv = chars.iter().map(|c| c.hadv).sum();
         Ok(GroupResp {
             chars,
             text: s.to_string(),
+            break_after,
             hadv,
         })
     }).collect::<anyhow::Result<Vec<_>>>()?;

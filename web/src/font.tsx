@@ -100,55 +100,39 @@ export function materialize(
   );
 }
 
-function segmentBefore<T, S>(
-  data: T[],
-  pred: (x: T, idx: number) => boolean,
-  incr: (x: T, idx: number) => void,
-  decorate: (seg: T[]) => S,
-): S[] {
-  if (data.length === 0) return [];
+function nextLine(grps: GroupResp[], maxWidth: number): WidthLine {
+  let lineWidth = 0;
+  let lineOpticalWidth = 0;
+  let lastBreakAfter: null | number = null;
 
-  const segments: S[] = [];
-  let cur: T[] = [data[0]];
-  incr(data[0], 0);
+  let idx = 0;
+  for(const grp of grps) {
+    if (lineWidth + grp.hadv > maxWidth && lastBreakAfter !== null) break;
+    lineWidth += grp.hadv;
+    if (!grp.text.match(/^ +$/)) lineOpticalWidth = lineWidth;
+    if (grp.breakAfter) lastBreakAfter = idx;
+    ++idx;
+  }
+  if(lastBreakAfter === null) throw new Error("Cannot break line");
 
-  data.slice(1).forEach((x, idx) => {
-    if (pred(x, idx + 1)) {
-      segments.push(decorate(cur));
-      cur = [];
-    }
-    cur.push(x);
-    incr(x, idx + 1);
-  })
-  segments.push(decorate(cur));
-
-  return segments;
+  return {
+    optWidth: lineOpticalWidth,
+    fullWidth: lineWidth,
+    line: grps.slice(0, lastBreakAfter + 1),
+  };
 }
 
 export function render(
   line: TitleResp,
   maxWidth: number = Infinity,
 ): [WidthLine[], RenderDimensions] {
-  let lineWidth = 0;
-  let lineOpticalWidth = 0;
-  const widthLines: WidthLine[] = segmentBefore(
-    line.groups,
-    (grp) => !grp.text.match(/^ +$/) && lineWidth + grp.hadv > maxWidth,
-    (grp) => {
-      lineWidth += grp.hadv;
-      if (!grp.text.match(/^ +$/)) lineOpticalWidth = lineWidth;
-    },
-    (line) => {
-      const ret = {
-        optWidth: lineOpticalWidth,
-        fullWidth: lineWidth,
-        line,
-      };
-      lineWidth = 0;
-      lineOpticalWidth = 0;
-      return ret;
-    },
-  );
+  const widthLines: WidthLine[] = [];
+  let remaining = line.groups;
+  while(remaining.length > 0) {
+    const line = nextLine(remaining, maxWidth);
+    widthLines.push(line);
+    remaining = remaining.slice(line.line.length);
+  }
 
   const dimensions = {
     totalWidth: widthLines.reduce((acc, line) => acc + line.fullWidth, 0),
