@@ -171,7 +171,6 @@ export function getStrokeDist(stroke: SVGPathElement, size: number): number {
     stroke.parentElement!.parentElement!.style.getPropertyValue(
       "--grp-xdiff",
     );
-  console.log(inGrpXdiff, grpXdiff, bbox, parentBbox);
   return (
     bbox.x -
     parentBbox.x +

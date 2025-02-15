@@ -678,14 +678,16 @@ class Post implements RenderedEntity {
         // So we pre-set the target FLIP scale and then ask
         // what's the delta
 
-        stroke.style.setProperty('transform', `scale(24)`); // Origional scale
+        stroke.style.setProperty('--var-scale', `0.5`); // Origional scale
         const bbox = stroke.getBoundingClientRect();
         const refBbox = refStroke.getBoundingClientRect();
 
-        stroke.style.removeProperty('transform');
+        stroke.style.removeProperty('--var-scale');
         const dist = getStrokeDist(stroke, 24);
         return { dx: refBbox.x - bbox.x, dy: refBbox.y - bbox.y, dist, stroke };
       })
+
+      const maxDist = Math.max(...animations.map(({ dist }) => dist));
 
       for(const { dx, dy, dist, stroke } of animations) {
         stroke.animate([{
@@ -694,7 +696,7 @@ class Post implements RenderedEntity {
           scale(24)
           `
         }, {}], {
-          delay: dist * 2,
+          delay: Math.random() * 200 + dist / maxDist * 200,
           duration: 200,
           easing: "cubic-bezier(0, 0, 0, 1)",
           fill: "both",
