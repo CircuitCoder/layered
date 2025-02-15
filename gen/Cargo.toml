@@ -27,6 +27,7 @@ url = "2.5.4"
 unicode-segmentation = "1.12.0"
 unicode-linebreak = "0.1.5"
 tempfile = "3.16.0"
+itertools = "0.14.0"
 
 [build-dependencies]
 syntect = "5.2.0"

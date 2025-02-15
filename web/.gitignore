@@ -25,6 +25,6 @@ dist-ssr
 
 # Artifacts
 src/typings
-src/data.json
+src/assets/data.json
 src/assets/subset.woff2
 public/feed.xml

@@ -1,6 +1,8 @@
+use std::collections::BTreeSet;
 use std::collections::HashSet;
 use std::io::Write;
 
+use itertools::Itertools;
 use lyon_path::PathEvent;
 use tempfile::NamedTempFile;
 use ttf_parser::Rect;
@@ -151,8 +153,16 @@ pub struct CharResp {
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
-pub struct TitleResp {
+pub struct GroupResp {
     pub chars: Vec<CharResp>,
+    pub text: String,
+    pub hadv: f64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[ts(export)]
+pub struct TitleResp {
+    pub groups: Vec<GroupResp>,
     pub asc: f64,
     pub des: f64,
     // pub em: u16,
@@ -415,14 +425,31 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
 
 pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<TitleResp> {
     let em = face.units_per_em();
-    let chars: anyhow::Result<Vec<_>> = title
-        .chars()
-        .map(|c| parse_char(c, em as f64, face))
+
+    // Segmentation & line-break
+    use unicode_segmentation::UnicodeSegmentation;
+    let segmented: BTreeSet<usize> =
+        title.split_word_bound_indices().map(|(i, _)| i)
+        .chain(unicode_linebreak::linebreaks(title).map(|(i, opp)| {
+            assert!(opp == unicode_linebreak::BreakOpportunity::Allowed || i == title.len(), "Unexpected line break in title");
+            i
+        }))
         .collect();
-    let chars = chars?;
+    let segs = segmented.iter().tuple_windows().map(|(a, b)| &title[*a..*b]);
+    let groups = segs.map(|s| -> anyhow::Result<GroupResp> {
+        let chars = s.chars()
+            .map(|c| parse_char(c, em as f64, face))
+            .collect::<anyhow::Result<Vec<_>>>()?;
+        let hadv = chars.iter().map(|c| c.hadv).sum();
+        Ok(GroupResp {
+            chars,
+            text: s.to_string(),
+            hadv,
+        })
+    }).collect::<anyhow::Result<Vec<_>>>()?;
 
     Ok(TitleResp {
-        chars,
+        groups,
         // em: face.units_per_em(),
         asc: face.ascender() as f64 / em as f64,
         des: face.descender() as f64 / em as f64,

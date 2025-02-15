@@ -1,6 +1,6 @@
-import { CharResp } from "./typings/CharResp";
 import { TitleResp } from "./typings/TitleResp";
 import { jsxSVG as jsx } from "./jsx";
+import { GroupResp } from "./typings/GroupResp";
 
 type RenderDimensions = {
   totalWidth: number;
@@ -8,23 +8,10 @@ type RenderDimensions = {
   lineCnt: number;
 };
 
-function isContinous(thunk: string, incoming: string): boolean {
-  if (incoming === " ") return !!thunk.match(/^ +$/);
-  else if (thunk.match(/[0-9]/)) return !!thunk.match(/^[0-9]+$/);
-  else if (thunk.match(/[a-zA-Z]/)) return !!thunk.match(/^[a-zA-Z]+$/);
-  else return false;
-}
-
-type WidthGroup = {
-  width: number;
-  text: string;
-  group: CharResp[];
-};
-
 type WidthLine = {
   optWidth: number;
   fullWidth: number;
-  line: WidthGroup[];
+  line: GroupResp[];
 };
 
 // Render flow: render gives Line[] and RenderDimensions
@@ -46,7 +33,7 @@ export function materialize(
     const grps = line.line.map((grp, localGrpIdx) => {
       let grpAccum = 0;
 
-      const chrs = grp.group.map((chr) => {
+      const chrs = grp.chars.map((chr) => {
         const glyph = (
           <g
             class="glyph"
@@ -70,7 +57,7 @@ export function materialize(
             "--local-grp-idx": localGrpIdx.toString(),
             "--grp-idx": grpCnt.toString(),
             "--grp-line-xdiff": lineAccum.toString() + "px",
-            "--grp-width": grp.width.toString(),
+            "--grp-width": grp.hadv.toString(),
             "--grp-xdiff": globalXdiff.toString() + "px",
           }}
           data-text={grp.text}
@@ -79,8 +66,8 @@ export function materialize(
         </g>
       );
 
-      lineAccum += grp.width;
-      globalXdiff += grp.width;
+      lineAccum += grp.hadv;
+      globalXdiff += grp.hadv;
       ++grpCnt;
 
       return grpEl;
@@ -115,24 +102,24 @@ export function materialize(
 
 function segmentBefore<T, S>(
   data: T[],
-  pred: (x: T) => boolean,
-  incr: (x: T) => void,
+  pred: (x: T, idx: number) => boolean,
+  incr: (x: T, idx: number) => void,
   decorate: (seg: T[]) => S,
 ): S[] {
   if (data.length === 0) return [];
 
   const segments: S[] = [];
   let cur: T[] = [data[0]];
-  incr(data[0]);
+  incr(data[0], 0);
 
-  for (const x of data.slice(1)) {
-    if (pred(x)) {
+  data.slice(1).forEach((x, idx) => {
+    if (pred(x, idx + 1)) {
       segments.push(decorate(cur));
       cur = [];
     }
     cur.push(x);
-    incr(x);
-  }
+    incr(x, idx + 1);
+  })
   segments.push(decorate(cur));
 
   return segments;
@@ -142,35 +129,13 @@ export function render(
   line: TitleResp,
   maxWidth: number = Infinity,
 ): [WidthLine[], RenderDimensions] {
-  let grpText = "";
-  let grpWidthAcc = 0;
-
-  const widthGroups: WidthGroup[] = segmentBefore(
-    line.chars,
-    (chr) => grpText !== "" && !isContinous(grpText, chr.char),
-    (chr) => {
-      grpText += chr.char;
-      grpWidthAcc += chr.hadv;
-    },
-    (grp) => {
-      const ret = {
-        text: grpText,
-        width: grpWidthAcc,
-        group: grp,
-      };
-      grpText = "";
-      grpWidthAcc = 0;
-      return ret;
-    },
-  );
-
   let lineWidth = 0;
   let lineOpticalWidth = 0;
   const widthLines: WidthLine[] = segmentBefore(
-    widthGroups,
-    (grp) => !grp.text.match(/^ +$/) && lineWidth + grp.width > maxWidth,
+    line.groups,
+    (grp) => !grp.text.match(/^ +$/) && lineWidth + grp.hadv > maxWidth,
     (grp) => {
-      lineWidth += grp.width;
+      lineWidth += grp.hadv;
       if (!grp.text.match(/^ +$/)) lineOpticalWidth = lineWidth;
     },
     (line) => {

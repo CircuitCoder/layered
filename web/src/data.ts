@@ -1,10 +1,10 @@
 import { Post } from "./typings/Post";
-import DATA_URL from "./data.json?url";
+import DATA_URL from "./assets/data.json?url";
 
 const SSR = import.meta.env.SSR;
 
 export async function getDataInner(): Promise<Post[]> {
-  if (SSR) return (await import("./data.json")).default;
+  if (SSR) return (await import("./assets/data.json")).default;
   const req = await fetch(DATA_URL);
   return await req.json();
 }
