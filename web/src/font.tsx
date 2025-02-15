@@ -106,14 +106,14 @@ function nextLine(grps: GroupResp[], maxWidth: number): WidthLine {
   let lastBreakAfter: null | number = null;
 
   let idx = 0;
-  for(const grp of grps) {
+  for (const grp of grps) {
     if (lineWidth + grp.hadv > maxWidth && lastBreakAfter !== null) break;
     lineWidth += grp.hadv;
     if (!grp.text.match(/^ +$/)) lineOpticalWidth = lineWidth;
     if (grp.breakAfter) lastBreakAfter = idx;
     ++idx;
   }
-  if(lastBreakAfter === null) throw new Error("Cannot break line");
+  if (lastBreakAfter === null) throw new Error("Cannot break line");
 
   return {
     optWidth: lineOpticalWidth,
@@ -128,7 +128,7 @@ export function render(
 ): [WidthLine[], RenderDimensions] {
   const widthLines: WidthLine[] = [];
   let remaining = line.groups;
-  while(remaining.length > 0) {
+  while (remaining.length > 0) {
     const line = nextLine(remaining, maxWidth);
     widthLines.push(line);
     remaining = remaining.slice(line.line.length);
@@ -152,12 +152,10 @@ export function getStrokeDist(stroke: SVGPathElement, size: number): number {
   const inGrpXdiff =
     stroke.parentElement!.style.getPropertyValue("--in-grp-xdiff");
   const grpXdiff =
-    stroke.parentElement!.parentElement!.style.getPropertyValue(
-      "--grp-xdiff",
-    );
+    stroke.parentElement!.parentElement!.style.getPropertyValue("--grp-xdiff");
   return (
     bbox.x -
     parentBbox.x +
     (parseFloat(inGrpXdiff) + parseFloat(grpXdiff)) * size
-  )
+  );
 }

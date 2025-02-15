@@ -3,7 +3,11 @@ import { apply as applyStatic, arrow } from "./static";
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
 import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
-import { render as renderLine, materialize as materializeLine, getStrokeDist } from "./font";
+import {
+  render as renderLine,
+  materialize as materializeLine,
+  getStrokeDist,
+} from "./font";
 import { jsx, clone as cloneNode } from "./jsx";
 import * as Icons from "./icons";
 import * as CONFIG from "./config";
@@ -665,8 +669,12 @@ class Post implements RenderedEntity {
     commit(-pastXVar / 2);
 
     if (ref !== null) {
-      const refStrokes = ref?.querySelectorAll("g.var-group path") as NodeListOf<SVGPathElement>;
-      const strokes = title.querySelectorAll("g.var-group path") as NodeListOf<SVGPathElement>;
+      const refStrokes = ref?.querySelectorAll(
+        "g.var-group path",
+      ) as NodeListOf<SVGPathElement>;
+      const strokes = title.querySelectorAll(
+        "g.var-group path",
+      ) as NodeListOf<SVGPathElement>;
 
       const animations = Array.from(strokes).map((stroke, i) => {
         const refStroke = refStrokes[i];
@@ -678,30 +686,36 @@ class Post implements RenderedEntity {
         // So we pre-set the target FLIP scale and then ask
         // what's the delta
 
-        stroke.style.setProperty('--var-scale', `0.5`); // Origional scale
+        stroke.style.setProperty("--var-scale", `0.5`); // Origional scale
         const bbox = stroke.getBoundingClientRect();
         const refBbox = refStroke.getBoundingClientRect();
 
-        stroke.style.removeProperty('--var-scale');
+        stroke.style.removeProperty("--var-scale");
         const dist = getStrokeDist(stroke, 24);
         return { dx: refBbox.x - bbox.x, dy: refBbox.y - bbox.y, dist, stroke };
-      })
+      });
 
       const maxDist = Math.max(...animations.map(({ dist }) => dist));
 
-      for(const { dx, dy, dist, stroke } of animations) {
-        stroke.animate([{
-          transform: `
+      for (const { dx, dy, dist, stroke } of animations) {
+        stroke.animate(
+          [
+            {
+              transform: `
           translate(${dx}px, ${dy}px)
           scale(24)
-          `
-        }, {}], {
-          delay: Math.random() * 200 + dist / maxDist * 200,
-          duration: 200,
-          easing: "cubic-bezier(0, 0, 0, 1)",
-          fill: "both",
-        })
-      };
+          `,
+            },
+            {},
+          ],
+          {
+            delay: Math.random() * 200 + (dist / maxDist) * 200,
+            duration: 200,
+            easing: "cubic-bezier(0, 0, 0, 1)",
+            fill: "both",
+          },
+        );
+      }
     }
   }
 
