@@ -18,3 +18,27 @@ export function getLinkInAnscenstor(e: EventTarget | null): string | null {
 export function randomWithin(a: number, b: number): number {
   return a + Math.random() * (b - a);
 }
+
+export class SemiReactive<T> {
+  data: T | null;
+  promise: Promise<void>;
+  resolve: () => void;
+
+  constructor() {
+    this.data = null;
+    let r: () => void;
+    this.promise = new Promise((resolve) => r = resolve);
+    this.resolve = r!;
+  }
+
+  set(value: T) {
+    const orig = this.data;
+    this.data = value;
+    if(orig === null) this.resolve();
+  }
+
+  async get(): Promise<T> {
+    if(this.data === null) await this.promise;
+    return this.data!;
+  }
+}

@@ -218,6 +218,8 @@ async function transitionRender(
   path?: string,
 ) {
   // All transitions require fetching all data, so we wait on that
+
+  // FIXME: also fetch data for search
   const data = await getData();
 
   // The default title

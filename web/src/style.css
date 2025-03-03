@@ -802,6 +802,19 @@ root[data-view="about"] {
   z-index: 5;
 }
 
+/* Search */
+
+.search-box {
+  position: fixed;
+  top: 0px;
+  left: 180px;
+  background: var(--color-bg);
+  right: 0;
+  height: 100px;
+  z-index: 8;
+  border-bottom: 1px solid black;
+}
+
 /* States */
 
 root.initial {
