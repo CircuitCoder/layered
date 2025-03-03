@@ -69,6 +69,14 @@ function registerDOM(key: string, value: any) {
   document.getElementById(key)!.replaceWith(value);
 }
 
+// Delayed rendering
+type RenderFunc = () => void;
+type RenderFuncs = { entry?: RenderFunc, exit?: RenderFunc };
+const delayedRenderers: WeakMap<EventTarget, RenderFuncs> = new WeakMap();
+function registerDelayedRenderer(el: EventTarget, funcs: RenderFuncs) {
+  delayedRenderers.set(el, funcs);
+}
+
 export async function bootstrap(
   register: (key: string, value: any) => void = registerDOM,
   initPath: string = document.location.pathname,
@@ -120,6 +128,14 @@ export async function bootstrap(
 
   window.addEventListener("popstate", () => {
     reflection(document.location.pathname);
+  });
+
+  window.addEventListener('contentvisibilityautostatechange', (eraw) => {
+    const e = eraw as ContentVisibilityAutoStateChangeEvent;
+    if(!e.target) return;
+    const funcs = delayedRenderers.get(e.target);
+    if(e.skipped && funcs?.exit) funcs.exit();
+    if(!e.skipped && funcs?.entry) funcs.entry();
   });
 }
 
@@ -464,9 +480,23 @@ class List implements RenderedEntity {
     });
     const updated = !!post.metadata.update_time;
 
-    const [line] = renderTitle(post.metadata.title_outline, post.metadata.title, () => List.getTitleSpace() / 24);
+    let line: Element;
+    let delayedRenderer: (() => void) | null = null;
+    const render = () => {
+      const [rendered] = renderTitle(post.metadata.title_outline, post.metadata.title, () => List.getTitleSpace() / 24);
+      return rendered;
+    };
 
-    return (
+    if(SSR || !window.ContentVisibilityAutoStateChangeEvent) {
+      line = render();
+    } else {
+      line = <div />;
+      delayedRenderer = () => {
+        line.replaceWith(render());
+      };
+    }
+
+    const entry = (
       <div class="entry">
         <div class="entry-title" style={{}}>
           {line}
@@ -480,6 +510,10 @@ class List implements RenderedEntity {
         </div>
       </div>
     );
+
+    if(delayedRenderer !== null)
+      registerDelayedRenderer(entry, { entry: delayedRenderer });
+    return entry;
   }
 
   async exit() {

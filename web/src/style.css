@@ -411,6 +411,7 @@ nav {
 .entry {
   margin-bottom: 60px;
   content-visibility: auto;
+  contain-intrinsic-height: 80px;
 }
 
 .entry-title {
