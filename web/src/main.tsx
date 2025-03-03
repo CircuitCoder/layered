@@ -2,7 +2,7 @@ import { apply as applyStatic, arrow } from "./static";
 
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
-import { wait, nextTick, getLinkInAnscenstor, randomWithin } from "./utils";
+import { wait, nextTick, getLinkInAnscenstor, randomWithin, Debouncer } from "./utils";
 import {
   render as renderLine,
   materialize as materializeLine,
@@ -10,6 +10,7 @@ import {
   RenderDimensions,
 } from "./font";
 import { jsx, clone as cloneNode } from "./jsx";
+import { search } from "./search/wrapper";
 import * as Icons from "./icons";
 import * as CONFIG from "./config";
 
@@ -48,6 +49,7 @@ interface RenderedEntity {
 }
 
 const SSR = import.meta.env.SSR;
+const DEBUG_ANIMATION_SLOWDOWN: number = 1;
 
 let state: State = { ty: "Vacant" };
 let rendered: RenderedEntity | null = null;
@@ -86,6 +88,16 @@ export async function bootstrap(
     updateBannerClass();
   });
   observer.observe(sentinel);
+
+  // Listen on search input
+  const searchInput = window.document.getElementById("search")! as HTMLInputElement;
+  const searchDebouncer = new Debouncer(500);
+  searchInput.addEventListener("input", async () => {
+    await searchDebouncer.notify();
+    const query = searchInput.value;
+    const result = await search(query);
+    console.log(result);
+  });
 
   window.addEventListener("scroll", scroll);
   window.addEventListener("click", (e) => {
@@ -785,12 +797,13 @@ class Post implements RenderedEntity {
       const freeKeyframe = {
         transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale}) scale(var(--size))`,
         opacity: 0,
+        filter: "blur(0.2px)",
       };
 
       const keyframes = entry ? [freeKeyframe, {}] : [{}, freeKeyframe];
       return stroke.animate(keyframes, {
-        delay: dist * (entry ? 1.2 : 0.5),
-        duration: entry ? 500 : 200,
+        delay: dist * (entry ? 1.2 : 0.5) * DEBUG_ANIMATION_SLOWDOWN,
+        duration: (entry ? 500 : 200) * DEBUG_ANIMATION_SLOWDOWN,
         easing: entry ? "cubic-bezier(0, 0, 0, 1)" : "cubic-bezier(1, 0, 1, 1)",
         fill: "both",
       }).finished;

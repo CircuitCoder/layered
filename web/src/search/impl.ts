@@ -89,7 +89,7 @@ function findBestWindow(tokens: Token[]): Window {
 export default function perform(posts: Post[], query: string): SearchResult[] {
   const kws = query.toLowerCase().split(' ').filter(k => !!k);
 
-  return posts.flatMap((post) => {
+  const result = posts.flatMap((post) => {
     const text = post.plain.toLowerCase();
 
     // TODO: change to weighted windows
@@ -119,8 +119,9 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
         region.push(['text', lastEnd, hits[i].start]);
         region.push(['highlight', hits[i].start, hits[i].end]);
       }
-      const epilogueEnd = Math.min(hits[cur.toToken].end + SEARCH_SIDE_BEARING, text.length);
-      region.push(['text', hits[cur.toToken].end, epilogueEnd]);
+      if(cur.toToken <= cur.fromToken) throw new Error("Sanity check");
+      const epilogueEnd = Math.min(hits[cur.toToken - 1].end + SEARCH_SIDE_BEARING, text.length);
+      region.push(['text', hits[cur.toToken - 1].end, epilogueEnd]);
       // Filter out zero-length areas
       const filtered = region.filter(([_, start, end]) => start < end);
       if(filtered[0][1] > (regions[regions.length - 1]?.[2] ?? 0)) regions.push(['ellipsis']);
@@ -136,4 +137,7 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
       score: cur.score,
     }];
   });
+
+  // Secondary key should be publish time, but since sort is stable, we can skip that key
+  return result.sort((a, b) => b.score - a.score);
 }

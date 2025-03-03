@@ -42,3 +42,22 @@ export class SemiReactive<T> {
     return this.data!;
   }
 }
+
+const Blackhole = new Promise(() => {});
+
+export class Debouncer {
+  epoch: number;
+  delay: number;
+
+  constructor(delay: number) {
+    this.epoch = 0;
+    this.delay = delay;
+  }
+
+  async notify(): Promise<void> {
+    this.epoch++;
+    const cur = this.epoch;
+    await wait(this.delay);
+    if(cur !== this.epoch) await Blackhole;
+  }
+}

@@ -5,7 +5,9 @@ import { Request, Response } from "./worker";
 
 const posts = new SemiReactive<Post[]>();
 const useWorker = typeof Worker !== 'undefined';
-const worker = useWorker ? new Worker(new URL('./worker.ts', import.meta.url)) : null;
+const worker = useWorker ? new Worker(new URL('./worker.ts', import.meta.url), {
+  type: "module",
+}) : null;
 
 export function setPosts(p: Post[]) {
   if(worker) worker.postMessage({ ty: 'set-posts', posts: p } as Request);
