@@ -805,15 +805,31 @@ root[data-view="about"] {
 
 /* Search */
 
-.search-box {
+.search-overlay {
+  z-index: 50;
+  background: rgba(255,255,255,.9);
+  backdrop-filter: blur(2px);
   position: fixed;
-  top: 0px;
-  left: 180px;
-  background: var(--color-bg);
+  left: 0;
   right: 0;
-  height: 100px;
-  z-index: 8;
-  border-bottom: 1px solid black;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  display: none;
+}
+
+#search {
+  border: none;
+  background: transparent;
+  outline: none;
+  border-bottom: 2px solid var(--color-fg);
+  padding: 20px 30px;
+  background: #EFEFEF;
+  font-size: 18px;
+  border-radius: 6px;
 }
 
 /* States */

@@ -40,6 +40,9 @@ type State =
       ty: "About";
     }
   | {
+      ty: "Search";
+    }
+  | {
       ty: "NotFound";
     };
 
