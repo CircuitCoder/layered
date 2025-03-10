@@ -2,7 +2,13 @@ import { apply as applyStatic, arrow } from "./static";
 
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
-import { wait, nextTick, getLinkInAnscenstor, randomWithin, Debouncer } from "./utils";
+import {
+  wait,
+  nextTick,
+  getLinkInAnscenstor,
+  randomWithin,
+  Debouncer,
+} from "./utils";
 import {
   render as renderLine,
   materialize as materializeLine,
@@ -74,7 +80,7 @@ function registerDOM(key: string, value: any) {
 
 // Delayed rendering
 type RenderFunc = () => void;
-type RenderFuncs = { entry?: RenderFunc, exit?: RenderFunc };
+type RenderFuncs = { entry?: RenderFunc; exit?: RenderFunc };
 const delayedRenderers: WeakMap<EventTarget, RenderFuncs> = new WeakMap();
 function registerDelayedRenderer(el: EventTarget, funcs: RenderFuncs) {
   delayedRenderers.set(el, funcs);
@@ -101,7 +107,9 @@ export async function bootstrap(
   observer.observe(sentinel);
 
   // Listen on search input
-  const searchInput = window.document.getElementById("search")! as HTMLInputElement;
+  const searchInput = window.document.getElementById(
+    "search",
+  )! as HTMLInputElement;
   const searchDebouncer = new Debouncer(500);
   searchInput.addEventListener("input", async () => {
     await searchDebouncer.notify();
@@ -133,12 +141,12 @@ export async function bootstrap(
     reflection(document.location.pathname);
   });
 
-  window.addEventListener('contentvisibilityautostatechange', (eraw) => {
+  window.addEventListener("contentvisibilityautostatechange", (eraw) => {
     const e = eraw as ContentVisibilityAutoStateChangeEvent;
-    if(!e.target) return;
+    if (!e.target) return;
     const funcs = delayedRenderers.get(e.target);
-    if(e.skipped && funcs?.exit) funcs.exit();
-    if(!e.skipped && funcs?.entry) funcs.entry();
+    if (e.skipped && funcs?.exit) funcs.exit();
+    if (!e.skipped && funcs?.entry) funcs.entry();
   });
 }
 
@@ -387,16 +395,13 @@ function rehydrate(key: string, cls?: string): HTMLElement | null {
   return queried as HTMLElement | null;
 }
 
-export function surrogateTitle(
-  spec: TitleResp,
-  text: string,
-): Element {
-  return <div class="surrogate-title">
-    {text}
-    <script type="application/json">
-      {JSON.stringify(spec)}
-    </script>
-  </div>;
+export function surrogateTitle(spec: TitleResp, text: string): Element {
+  return (
+    <div class="surrogate-title">
+      {text}
+      <script type="application/json">{JSON.stringify(spec)}</script>
+    </div>
+  );
 }
 
 export function hydratedTitle(
@@ -414,7 +419,7 @@ export function renderTitle(
   getMaxWidth: () => number,
   additionalClasses?: string[],
 ): [Element, RenderDimensions?] {
-  if(SSR) return [surrogateTitle(spec, text), undefined];
+  if (SSR) return [surrogateTitle(spec, text), undefined];
   return hydratedTitle(spec, getMaxWidth(), additionalClasses);
 }
 
@@ -437,10 +442,12 @@ class List implements RenderedEntity {
       this.element = rehydrated;
 
       this.element.querySelectorAll(".surrogate-title").forEach((el) => {
-        const spec = JSON.parse(el.querySelector(":scope > script")!.textContent!);
+        const spec = JSON.parse(
+          el.querySelector(":scope > script")!.textContent!,
+        );
         const [hydrated] = hydratedTitle(spec, List.getTitleSpace() / 24);
         el.replaceWith(hydrated);
-      })
+      });
       return;
     }
     if (SSR) register!(":prerendered", "list");
@@ -469,7 +476,7 @@ class List implements RenderedEntity {
     return this;
   }
 
-  private static getTitleSpace() : number {
+  private static getTitleSpace(): number {
     // Get available space
     const viewportWidth = window.innerWidth;
     if (viewportWidth > 500) return Math.max(viewportWidth - 120, 400);
@@ -486,11 +493,15 @@ class List implements RenderedEntity {
     let line: Element;
     let delayedRenderer: (() => void) | null = null;
     const render = () => {
-      const [rendered] = renderTitle(post.metadata.title_outline, post.metadata.title, () => List.getTitleSpace() / 24);
+      const [rendered] = renderTitle(
+        post.metadata.title_outline,
+        post.metadata.title,
+        () => List.getTitleSpace() / 24,
+      );
       return rendered;
     };
 
-    if(SSR || !window.ContentVisibilityAutoStateChangeEvent) {
+    if (SSR || !window.ContentVisibilityAutoStateChangeEvent) {
       line = render();
     } else {
       line = <div />;
@@ -514,7 +525,7 @@ class List implements RenderedEntity {
       </div>
     );
 
-    if(delayedRenderer !== null)
+    if (delayedRenderer !== null)
       registerDelayedRenderer(entry, { entry: delayedRenderer });
     return entry;
   }
@@ -555,15 +566,26 @@ class Post implements RenderedEntity {
       this.element = rehydrated;
 
       this.element.querySelectorAll(".surrogate-title").forEach((el) => {
-        const spec = JSON.parse(el.querySelector(":scope > script")!.textContent!);
+        const spec = JSON.parse(
+          el.querySelector(":scope > script")!.textContent!,
+        );
         const isAux = el.parentElement?.classList.contains("post-metadata-aux");
-        const maxWidth = isAux ? Post.getAuxTitleSpace() / 16 : Post.getTitleSpace() / 48;
-        const [hydrated, dim] = hydratedTitle(spec, maxWidth, !isAux ? ["title-center"] : []);
+        const maxWidth = isAux
+          ? Post.getAuxTitleSpace() / 16
+          : Post.getTitleSpace() / 48;
+        const [hydrated, dim] = hydratedTitle(
+          spec,
+          maxWidth,
+          !isAux ? ["title-center"] : [],
+        );
 
-        if(!isAux)
-          el.parentElement?.style.setProperty("--title-line-cnt", dim.lineCnt.toString());
+        if (!isAux)
+          el.parentElement?.style.setProperty(
+            "--title-line-cnt",
+            dim.lineCnt.toString(),
+          );
         el.replaceWith(hydrated);
-      })
+      });
 
       return;
     }
@@ -571,7 +593,12 @@ class Post implements RenderedEntity {
 
     // Get available space
 
-    const [title, titleDim] = renderTitle(post.metadata.title_outline, post.metadata.title, () => Post.getTitleSpace() / 48, ["title-center"]);
+    const [title, titleDim] = renderTitle(
+      post.metadata.title_outline,
+      post.metadata.title,
+      () => Post.getTitleSpace() / 48,
+      ["title-center"],
+    );
 
     const content = <div __html={post.html} class="post-content"></div>;
 
@@ -618,7 +645,11 @@ class Post implements RenderedEntity {
 
     const metadata = genMetadata("post-metadata", []);
 
-    const [auxTitle] = renderTitle(post.metadata.title_outline, post.metadata.title, () => Post.getAuxTitleSpace() / 16);
+    const [auxTitle] = renderTitle(
+      post.metadata.title_outline,
+      post.metadata.title,
+      () => Post.getAuxTitleSpace() / 16,
+    );
 
     const auxMetadata = genMetadata("post-metadata-aux", [auxTitle]);
 

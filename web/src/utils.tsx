@@ -27,18 +27,18 @@ export class SemiReactive<T> {
   constructor() {
     this.data = null;
     let r: () => void;
-    this.promise = new Promise((resolve) => r = resolve);
+    this.promise = new Promise((resolve) => (r = resolve));
     this.resolve = r!;
   }
 
   set(value: T) {
     const orig = this.data;
     this.data = value;
-    if(orig === null) this.resolve();
+    if (orig === null) this.resolve();
   }
 
   async get(): Promise<T> {
-    if(this.data === null) await this.promise;
+    if (this.data === null) await this.promise;
     return this.data!;
   }
 }
@@ -58,6 +58,6 @@ export class Debouncer {
     this.epoch++;
     const cur = this.epoch;
     await wait(this.delay);
-    if(cur !== this.epoch) await Blackhole;
+    if (cur !== this.epoch) await Blackhole;
   }
 }

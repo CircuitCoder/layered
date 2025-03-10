@@ -1,27 +1,30 @@
 import { Metadata } from "../typings/Metadata";
 import { Post } from "../typings/Post";
 
-export type SearchPreviewSegment = ['ellipsis'] | ['text', number, number] | ['highlight', number, number];
+export type SearchPreviewSegment =
+  | ["ellipsis"]
+  | ["text", number, number]
+  | ["highlight", number, number];
 
 export type SearchResult = {
-  metadata: Metadata,
-  preview: SearchPreviewSegment[],
-  score: number,
-}
+  metadata: Metadata;
+  preview: SearchPreviewSegment[];
+  score: number;
+};
 
 function findAllIndices(text: string, kw: string): number[] {
   const indices = [];
   let start = 0;
-  while(true) {
+  while (true) {
     const idx = text.indexOf(kw, start);
-    if(idx === -1) break;
+    if (idx === -1) break;
     indices.push(idx);
     start = idx + text.length;
   }
   return indices;
 }
 
-type Token = { start: number, end: number, score: number };
+type Token = { start: number; end: number; score: number };
 
 const MAX_WINDOW_WIDTH = 60;
 const MAX_WINDOW_NUM = 3;
@@ -29,17 +32,17 @@ const START_END_BONUS = 1;
 const SEARCH_SIDE_BEARING = 3;
 type Window = {
   // [from, to)
-  fromToken: number,
-  toToken: number,
-  score: number,
-  tail: Window | null,
-}
+  fromToken: number;
+  toToken: number;
+  score: number;
+  tail: Window | null;
+};
 
 class WindowMemo {
   inner: Map<number, Window>[] = [];
 
   set(leftWindows: number, startToken: number, window: Window) {
-    if(!this.inner[leftWindows]) this.inner[leftWindows] = new Map();
+    if (!this.inner[leftWindows]) this.inner[leftWindows] = new Map();
     this.inner[leftWindows].set(startToken, window);
   }
 
@@ -53,14 +56,24 @@ type JumpTable = number[];
 function genJumpTable(tokens: Token[]): JumpTable {
   let rightPtr = 0;
   return tokens.map((token, idx) => {
-    while(rightPtr < tokens.length && tokens[rightPtr].end - token.start <= MAX_WINDOW_WIDTH) rightPtr++;
+    while (
+      rightPtr < tokens.length &&
+      tokens[rightPtr].end - token.start <= MAX_WINDOW_WIDTH
+    )
+      rightPtr++;
     // Corner case: the search term itself is too long
-    if(rightPtr === idx) rightPtr = idx + 1;
+    if (rightPtr === idx) rightPtr = idx + 1;
     return rightPtr;
   });
 }
 
-function findBestWindowImpl(tokens: Token[], jumptbl: JumpTable, leftWindows: number, startToken: number, memo: WindowMemo): Window | null {
+function findBestWindowImpl(
+  tokens: Token[],
+  jumptbl: JumpTable,
+  leftWindows: number,
+  startToken: number,
+  memo: WindowMemo,
+): Window | null {
   if (leftWindows === 0) return null;
   if (startToken >= tokens.length) return null;
 
@@ -68,12 +81,32 @@ function findBestWindowImpl(tokens: Token[], jumptbl: JumpTable, leftWindows: nu
   if (memoized) return memoized;
 
   const end = jumptbl[startToken];
-  const selfScore = tokens.slice(startToken, end).reduce((acc, token) => acc + token.score, 0);
-  const next = findBestWindowImpl(tokens, jumptbl, leftWindows, startToken + 1, memo);
-  const jumped = findBestWindowImpl(tokens, jumptbl, leftWindows - 1, end, memo);
+  const selfScore = tokens
+    .slice(startToken, end)
+    .reduce((acc, token) => acc + token.score, 0);
+  const next = findBestWindowImpl(
+    tokens,
+    jumptbl,
+    leftWindows,
+    startToken + 1,
+    memo,
+  );
+  const jumped = findBestWindowImpl(
+    tokens,
+    jumptbl,
+    leftWindows - 1,
+    end,
+    memo,
+  );
   let bestWindow: Window;
-  if(next && next.score > selfScore + (jumped?.score ?? 0)) bestWindow = next;
-  else bestWindow = { fromToken: startToken, toToken: end, score: selfScore + (jumped?.score ?? 0), tail: jumped };
+  if (next && next.score > selfScore + (jumped?.score ?? 0)) bestWindow = next;
+  else
+    bestWindow = {
+      fromToken: startToken,
+      toToken: end,
+      score: selfScore + (jumped?.score ?? 0),
+      tail: jumped,
+    };
 
   memo.set(leftWindows, startToken, bestWindow);
   return bestWindow;
@@ -87,7 +120,10 @@ function findBestWindow(tokens: Token[]): Window {
 }
 
 export default function perform(posts: Post[], query: string): SearchResult[] {
-  const kws = query.toLowerCase().split(' ').filter(k => !!k);
+  const kws = query
+    .toLowerCase()
+    .split(" ")
+    .filter((k) => !!k);
 
   const result = posts.flatMap((post) => {
     const text = post.plain.toLowerCase();
@@ -99,43 +135,59 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
       { start: 0, end: 0, score: START_END_BONUS },
       { start: text.length, end: text.length, score: START_END_BONUS },
     ];
-    for(const kw of kws)
-      hits = hits.concat(findAllIndices(text, kw).map(start => ({ start, end: start + kw.length, score: kw.length })));
+    for (const kw of kws)
+      hits = hits.concat(
+        findAllIndices(text, kw).map((start) => ({
+          start,
+          end: start + kw.length,
+          score: kw.length,
+        })),
+      );
     // No match, only implicit tokens
-    if(hits.length === 2) return [];
+    if (hits.length === 2) return [];
 
     hits.sort((a, b) => a.start - b.start);
     let cur = findBestWindow(hits);
 
     // Serialize windows
     const regions: SearchPreviewSegment[] = [];
-    while(true) {
-      const region: ['text' | 'highlight', number, number][] = [];
-      for(let i = cur.fromToken; i < cur.toToken; i++) {
+    while (true) {
+      const region: ["text" | "highlight", number, number][] = [];
+      for (let i = cur.fromToken; i < cur.toToken; i++) {
         let lastEnd: number;
-        if(i == cur.fromToken)
-          lastEnd = Math.max(hits[cur.fromToken].start - SEARCH_SIDE_BEARING, 0);
+        if (i == cur.fromToken)
+          lastEnd = Math.max(
+            hits[cur.fromToken].start - SEARCH_SIDE_BEARING,
+            0,
+          );
         else lastEnd = hits[i - 1].end;
-        region.push(['text', lastEnd, hits[i].start]);
-        region.push(['highlight', hits[i].start, hits[i].end]);
+        region.push(["text", lastEnd, hits[i].start]);
+        region.push(["highlight", hits[i].start, hits[i].end]);
       }
-      if(cur.toToken <= cur.fromToken) throw new Error("Sanity check");
-      const epilogueEnd = Math.min(hits[cur.toToken - 1].end + SEARCH_SIDE_BEARING, text.length);
-      region.push(['text', hits[cur.toToken - 1].end, epilogueEnd]);
+      if (cur.toToken <= cur.fromToken) throw new Error("Sanity check");
+      const epilogueEnd = Math.min(
+        hits[cur.toToken - 1].end + SEARCH_SIDE_BEARING,
+        text.length,
+      );
+      region.push(["text", hits[cur.toToken - 1].end, epilogueEnd]);
       // Filter out zero-length areas
       const filtered = region.filter(([_, start, end]) => start < end);
-      if(filtered[0][1] > (regions[regions.length - 1]?.[2] ?? 0)) regions.push(['ellipsis']);
+      if (filtered[0][1] > (regions[regions.length - 1]?.[2] ?? 0))
+        regions.push(["ellipsis"]);
       regions.push(...filtered);
 
-      if(cur.tail === null) break;
+      if (cur.tail === null) break;
       cur = cur.tail;
     }
-    if(regions[regions.length - 1]?.[2] !== text.length) regions.push(['ellipsis']);
-    return [{
-      metadata: post.metadata,
-      preview: regions,
-      score: cur.score,
-    }];
+    if (regions[regions.length - 1]?.[2] !== text.length)
+      regions.push(["ellipsis"]);
+    return [
+      {
+        metadata: post.metadata,
+        preview: regions,
+        score: cur.score,
+      },
+    ];
   });
 
   // Secondary key should be publish time, but since sort is stable, we can skip that key
