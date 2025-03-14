@@ -8,6 +8,7 @@ export type SearchPreviewSegment =
 
 export type SearchResult = {
   metadata: Metadata;
+  plain: string;
   preview: SearchPreviewSegment[];
   score: number;
 };
@@ -29,7 +30,8 @@ type Token = { start: number; end: number; score: number };
 const MAX_WINDOW_WIDTH = 60;
 const MAX_WINDOW_NUM = 3;
 const START_END_BONUS = 1;
-const SEARCH_SIDE_BEARING = 3;
+const SEARCH_SIDE_BEARING = 30;
+const TITLE_SCORE_MULTIPLIER = 3;
 type Window = {
   // [from, to)
   fromToken: number;
@@ -119,6 +121,18 @@ function findBestWindow(tokens: Token[]): Window {
   return findBestWindowImpl(tokens, jumptbl, MAX_WINDOW_NUM, 0, memo)!;
 }
 
+function countOccurance(text: string, kw: string): number {
+  let count = 0;
+  let start = 0;
+  while (true) {
+    const idx = text.indexOf(kw, start);
+    if (idx === -1) break;
+    count++;
+    start = idx + kw.length;
+  }
+  return count;
+}
+
 export default function perform(posts: Post[], query: string): SearchResult[] {
   const kws = query
     .toLowerCase()
@@ -127,15 +141,12 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
 
   const result = posts.flatMap((post) => {
     const text = post.plain.toLowerCase();
+    let titleScore = 0;
 
     // TODO: change to weighted windows
     // TODO: also match tag, and give very high score
-    let hits: Token[] = [
-      // Implicit start & end token
-      { start: 0, end: 0, score: START_END_BONUS },
-      { start: text.length, end: text.length, score: START_END_BONUS },
-    ];
-    for (const kw of kws)
+    let hits: Token[] = [];
+    for (const kw of kws) {
       hits = hits.concat(
         findAllIndices(text, kw).map((start) => ({
           start,
@@ -143,8 +154,17 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
           score: kw.length,
         })),
       );
-    // No match, only implicit tokens
-    if (hits.length === 2) return [];
+      titleScore += countOccurance(post.metadata.title, kw) * TITLE_SCORE_MULTIPLIER;
+    }
+    // No match
+    if (hits.length === 0 && titleScore === 0) return [];
+
+    // Only title hit
+    if (hits.length === 0) return [{ metadata: post.metadata, plain: post.plain, preview: [], score: titleScore }];
+
+    // Extra bonus for front and end
+    if(hits[0].start <= SEARCH_SIDE_BEARING) hits[0].score += START_END_BONUS;
+    if(hits[hits.length - 1].end >= text.length - SEARCH_SIDE_BEARING) hits[hits.length - 1].score += START_END_BONUS;
 
     hits.sort((a, b) => a.start - b.start);
     let cur = findBestWindow(hits);
@@ -184,6 +204,7 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
     return [
       {
         metadata: post.metadata,
+        plain: post.plain,
         preview: regions,
         score: cur.score,
       },

@@ -48,7 +48,7 @@ type RecursiveElementSSR =
 
 function flatten(e: RecursiveElement[]): NonrecursiveElement[] {
   return e
-    .filter((e) => !!e)
+    .filter((e) => e !== null && e !== undefined && e !== false)
     .flatMap((e) => {
       if (Array.isArray(e)) return flatten(e);
       else if (e === true) return ["true"];
@@ -57,13 +57,7 @@ function flatten(e: RecursiveElement[]): NonrecursiveElement[] {
 }
 
 function flattenSSR(e: RecursiveElementSSR[]): string[] {
-  return e
-    .filter((e) => !!e)
-    .flatMap((e) => {
-      if (Array.isArray(e)) return flattenSSR(e);
-      else if (e === true) return ["true"];
-      return [e];
-    }) as string[];
+  return flatten(e) as string[];
 }
 
 export function jsxFactory(

@@ -23,6 +23,8 @@ import * as CONFIG from "./config";
 import { Temporal } from "@js-temporal/polyfill";
 import "giscus";
 import { TitleResp } from "./typings/TitleResp";
+import { SearchResult } from "./search/impl";
+import { Metadata } from "./typings/Metadata";
 
 /**
  * Application bootstrap
@@ -78,14 +80,6 @@ function registerDOM(key: string, value: any) {
   document.getElementById(key)!.replaceWith(value);
 }
 
-// Delayed rendering
-type RenderFunc = () => void;
-type RenderFuncs = { entry?: RenderFunc; exit?: RenderFunc };
-const delayedRenderers: WeakMap<EventTarget, RenderFuncs> = new WeakMap();
-function registerDelayedRenderer(el: EventTarget, funcs: RenderFuncs) {
-  delayedRenderers.set(el, funcs);
-}
-
 export async function bootstrap(
   register: (key: string, value: any) => void = registerDOM,
   initPath: string = document.location.pathname,
@@ -106,24 +100,10 @@ export async function bootstrap(
   });
   observer.observe(sentinel);
 
-  // Listen on search input
-  const searchInput = window.document.getElementById(
-    "search",
-  )! as HTMLInputElement;
-  const searchDebouncer = new Debouncer(500);
-  searchInput.addEventListener("input", async () => {
-    await searchDebouncer.notify();
-    const query = searchInput.value;
-    const result = await search(query);
-    console.log(result);
-  });
-
   window.addEventListener("scroll", scroll);
   window.addEventListener("click", (e) => {
     // Check if is internal URL
     let link = getLinkInAnscenstor(e.target);
-
-    // TODO: detect unchanged
 
     if (!link) return;
     if (!link.startsWith("/")) {
@@ -131,6 +111,11 @@ export async function bootstrap(
         link = link.slice(document.location.origin.length);
       else return;
     }
+    const pathEnd = link.indexOf("#");
+    if (pathEnd !== -1) link = link.slice(0, pathEnd);
+
+    // TODO: detect unchanged
+    // TODO: potentially navigate to hash
 
     e.preventDefault();
     history.pushState(null, "", link);
@@ -139,14 +124,6 @@ export async function bootstrap(
 
   window.addEventListener("popstate", () => {
     reflection(document.location.pathname);
-  });
-
-  window.addEventListener("contentvisibilityautostatechange", (eraw) => {
-    const e = eraw as ContentVisibilityAutoStateChangeEvent;
-    if (!e.target) return;
-    const funcs = delayedRenderers.get(e.target);
-    if (e.skipped && funcs?.exit) funcs.exit();
-    if (!e.skipped && funcs?.entry) funcs.entry();
   });
 }
 
@@ -192,6 +169,7 @@ function updateBannerClass(given?: State): string {
 function parsePath(path: String): State {
   const postMatch = path.match(/^\/post\/([^\/]+)$/);
   if (path === "/") return { ty: "Home" };
+  else if(path === "/search") return { ty: "Search" };
   else if (path === "/about") return { ty: "About" };
   else if (postMatch !== null) return { ty: "Post", slug: postMatch[1] };
   else return { ty: "NotFound" };
@@ -269,9 +247,10 @@ async function transitionRender(
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if (state.ty === "Home") rendered = new List(data, register);
+  else if(state.ty === "Search") rendered = new Search(register);
 
   // Render post
-  if (state.ty === "Post") {
+  else if (state.ty === "Post") {
     const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
     const post = data.find((p) => p.metadata.id === slug)!;
     title = post.metadata.title + " | 分层 - Layered";
@@ -282,7 +261,7 @@ async function transitionRender(
   }
 
   // Init about components
-  if (state.ty === "About") {
+  else if (state.ty === "About") {
     rendered = new About(false, register);
     title = "关于 | 分层 - Layered";
     backlink = CONFIG.BASE + "/about";
@@ -294,7 +273,8 @@ async function transitionRender(
     document.getElementById("root")!.appendChild(rendered.element);
 
     if (state.ty === "Home") (rendered as List).entry(slowEntry);
-    if (state.ty === "Post") {
+    else if (state.ty === "Search") (rendered as Search).entry(slowEntry);
+    else if (state.ty === "Post") {
       let renderedTitle: SVGSVGElement | null = null;
       if (
         activator !== null &&
@@ -306,7 +286,7 @@ async function transitionRender(
       }
       (rendered as Post).entry(renderedTitle);
     }
-    if (state.ty === "About") (rendered as About).entry();
+    else if (state.ty === "About") (rendered as About).entry();
   }
 
   if (!SSR) {
@@ -426,77 +406,29 @@ export function renderTitle(
 /**
  * List rendering
  */
-class List implements RenderedEntity {
-  element: HTMLElement;
 
-  constructor(
-    posts?: PostData[],
-    register?: (key: string, value: any) => void,
-  ) {
-    // TODO: other keys
-    // TODO: actually use hash of list
-    if (posts === undefined) {
-      const rehydrated = rehydrate("list");
-      if (!rehydrated) throw new Error("Hydration failed!");
-      // TODO: retry render
-      this.element = rehydrated;
-
-      this.element.querySelectorAll(".surrogate-title").forEach((el) => {
-        const spec = JSON.parse(
-          el.querySelector(":scope > script")!.textContent!,
-        );
-        const [hydrated] = hydratedTitle(spec, List.getTitleSpace() / 24);
-        el.replaceWith(hydrated);
-      });
-      return;
-    }
-    if (SSR) register!(":prerendered", "list");
-
-    const entries = posts.map((p) => List.renderEntry(p));
-    const list = <div class="list">{...entries}</div>;
-    this.element = list;
-  }
-
-  entry(initialHome: boolean): List {
-    this.element.animate(
-      [
-        {
-          transform: "translateY(-20px)",
-          opacity: 0,
-        },
-        {},
-      ],
-      {
-        delay: initialHome ? 700 : 200,
-        duration: 200,
-        easing: "ease-out",
-        fill: "backwards",
-      },
-    );
-    return this;
-  }
-
-  private static getTitleSpace(): number {
+namespace ListCommon {
+  export function getTitleSpace(): number {
     // Get available space
     const viewportWidth = window.innerWidth;
     if (viewportWidth > 500) return Math.max(viewportWidth - 120, 400);
     else return viewportWidth - 80;
   }
 
-  private static renderEntry(post: PostData): HTMLElement {
-    const dispTime = Temporal.Instant.from(post.metadata.publish_time);
+  export function renderEntry(metadata: Metadata, extra: HTMLElement[] = []): HTMLElement {
+    const dispTime = Temporal.Instant.from(metadata.publish_time);
     const dispDate = dispTime.toLocaleString(preferredLocale, {
       dateStyle: "medium",
     });
-    const updated = !!post.metadata.update_time;
+    const updated = !!metadata.update_time;
 
     let line: Element;
     let delayedRenderer: (() => void) | null = null;
     const render = () => {
       const [rendered] = renderTitle(
-        post.metadata.title_outline,
-        post.metadata.title,
-        () => List.getTitleSpace() / 24,
+        metadata.title_outline,
+        metadata.title,
+        () => getTitleSpace() / 24,
       );
       return rendered;
     };
@@ -514,10 +446,11 @@ class List implements RenderedEntity {
       <div class="entry">
         <div class="entry-title" style={{}}>
           {line}
-          <a class="entry-title-tangible" href={`/post/${post.metadata.id}`}>
-            {post.metadata.title}
+          <a class="entry-title-tangible" href={`/post/${metadata.id}`}>
+            {metadata.title}
           </a>
         </div>
+        {...extra}
         <div class="entry-time">
           {dispDate}
           {updated && cloneNode(Icons.Edit)}
@@ -526,8 +459,60 @@ class List implements RenderedEntity {
     );
 
     if (delayedRenderer !== null)
-      registerDelayedRenderer(entry, { entry: delayedRenderer });
+      entry.addEventListener("contentvisibilityautostatechange", () => {
+        delayedRenderer();
+      });
     return entry;
+  }
+}
+
+class List implements RenderedEntity {
+  element: HTMLElement;
+
+  constructor(
+    posts?: PostData[],
+    register?: (key: string, value: any) => void,
+  ) {
+    // TODO: actually use hash of list
+    if (posts === undefined) {
+      const rehydrated = rehydrate("list");
+      if (!rehydrated) throw new Error("Hydration failed!");
+      // TODO: retry render
+      this.element = rehydrated;
+
+      this.element.querySelectorAll(".surrogate-title").forEach((el) => {
+        const spec = JSON.parse(
+          el.querySelector(":scope > script")!.textContent!,
+        );
+        const [hydrated] = hydratedTitle(spec, ListCommon.getTitleSpace() / 24);
+        el.replaceWith(hydrated);
+      });
+      return;
+    }
+    if (SSR) register!(":prerendered", "list");
+
+    const entries = posts.map((p) => ListCommon.renderEntry(p.metadata));
+    const list = <div class="list">{...entries}</div>;
+    this.element = list;
+  }
+
+  entry(initialHome: boolean): typeof this {
+    this.element.animate(
+      [
+        {
+          transform: "translateY(-20px)",
+          opacity: 0,
+        },
+        {},
+      ],
+      {
+        delay: initialHome ? 700 : 200,
+        duration: 200,
+        easing: "ease-out",
+        fill: "backwards",
+      },
+    );
+    return this;
   }
 
   async exit() {
@@ -550,6 +535,147 @@ class List implements RenderedEntity {
       )
       .finished.then(() => el.remove());
   }
+}
+
+/* Search is a simple wrapper around List */
+class Search implements RenderedEntity {
+  element: HTMLElement;
+  // Active search result container
+  active: HTMLElement | null;
+
+  constructor(
+    _register?: (key: string, value: any) => void,
+  ) {
+    this.active = null;
+
+    // Never re-hydrate search, and also don't register
+
+    const input = <input id="search-input"></input>;
+
+    if(!SSR) {
+      const searchDebouncer = new Debouncer(500);
+      input.addEventListener("input", async () => {
+        this.exitResult();
+        await searchDebouncer.notify();
+        const query = (input as HTMLInputElement).value;
+        if(query === '') this.renderResult();
+        else {
+          const result = await search(query);
+          this.renderResult(result);
+        }
+      });
+    }
+
+    this.element = <div class="search">
+      <div class="search-input-container">
+        {input}
+        <div id="search-cnt">在此输入关键词</div>
+      </div>
+    </div>;
+  }
+
+  renderResult(results?: SearchResult[]) {
+    const cntContainer = document.getElementById("search-cnt");
+    if(!results) {
+      if(cntContainer) {
+        cntContainer.innerText = "在此输入关键词";
+        cntContainer.classList.remove('hidden');
+      }
+      return;
+    }
+
+    const cnt = results.length;
+    if(cntContainer) {
+      cntContainer.innerText = `${cnt} 条结果`;
+      cntContainer.classList.remove('hidden');
+    }
+
+    const rendered = <div class="search-result">
+      {results.map((r) => {
+        const preview = r.preview.map(e => {
+          if(e[0] === 'ellipsis') return <span class="search-preview-ellipsis">...</span>;
+          else if(e[0] === 'text') return <span>{r.plain.slice(e[1], e[2])}</span>;
+          else if(e[0] === 'highlight') return <strong>{r.plain.slice(e[1], e[2])}</strong>;
+          else throw new Error("Unknown preview segment");
+        })
+        return ListCommon.renderEntry(r.metadata, [<div class="search-preview">{...preview}</div>]);
+      })}
+    </div>;
+    this.element.appendChild(rendered);
+    this.active = rendered;
+    rendered.animate(
+      [
+        { opacity: 0, transform: "translateY(-20px)" },
+        {},
+      ],
+      {
+        duration: 200,
+        easing: "ease-out",
+        fill: "backwards",
+      },
+    )
+  }
+
+  entry(initialHome: boolean): typeof this {
+    this.element.animate(
+      [
+        { opacity: 0, },
+        {},
+      ],
+      {
+        delay: initialHome ? 700 : 200,
+        duration: 200,
+        easing: "ease-out",
+        fill: "backwards",
+      },
+    );
+    return this;
+  }
+
+  async exitResult(endOpacity: number = 0) {
+    const cntContainer = document.getElementById("search-cnt");
+    if(cntContainer) cntContainer.classList.add('hidden');
+    const el = this.active;
+    if(!el) return;
+
+    freezeScroll(el);
+    return el
+      .animate(
+        [
+          {},
+          {
+            transform: "translateY(20px)",
+            opacity: endOpacity,
+          },
+        ],
+        {
+          duration: 200,
+          easing: "ease-in",
+          fill: "backwards",
+        },
+      )
+      .finished.then(() => el.remove());
+  }
+
+  async exit() {
+    this.exitResult(1);
+    const el = this.element;
+    freezeScroll(el);
+    return el
+      .animate(
+        [
+          {},
+          { opacity: 0, },
+        ],
+        {
+          duration: 200,
+          easing: "ease-in",
+          fill: "backwards",
+        },
+      )
+      .finished.then(() => el.remove());
+  }
+  
 }
 
 /* Post rendering */

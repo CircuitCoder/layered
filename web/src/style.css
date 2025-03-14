@@ -65,6 +65,7 @@ a {
   text-decoration: none;
   border-bottom: 1px dashed var(--color-fg-icon);
   color: oklab(0.7 0 -0.1);
+  cursor: pointer;
 }
 
 /* Root */
@@ -393,22 +394,27 @@ nav {
 
 /* List */
 
-.list {
-  position: absolute;
-  top: 0;
+/* Shared list-like top-level container */
+.list, .search-input-container, .search-result {
   left: 200px;
-  width: calc(100% - 200px);
-  padding: 250px 60px 0 0;
+  right: 0;
 
+  padding-right: 60px;
   @media (max-width: 800px) {
+    top: 120px;
     left: 0;
-    width: 100%;
-    padding: 250px 60px 0 60px;
+    padding-left: 60px;
   }
 
   @media (max-width: 500px) {
-    padding: 250px 40px 0 40px;
+    padding: 0 40px 0 40px;
   }
+}
+
+.list {
+  position: absolute;
+  top: 0;
+  padding-top: 250px;
 }
 
 .entry {
@@ -808,31 +814,71 @@ root[data-view="about"] {
 
 /* Search */
 
-.search-overlay {
-  z-index: 50;
-  background: rgba(255,255,255,.9);
-  backdrop-filter: blur(2px);
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  display: none;
-}
-
-#search {
+#search-input {
   border: none;
   background: transparent;
   outline: none;
-  border-bottom: 2px solid var(--color-fg);
   padding: 20px 30px;
-  background: #EFEFEF;
   font-size: 18px;
   border-radius: 6px;
+  width: 100%;
+  background: color-mix(in srgb, color-mix(in srgb, var(--color-fg) 5%, var(--color-bg) 95%), transparent 20%);
+  backdrop-filter: blur(4px);
+  box-shadow: rgba(0,0,0,.3) 0 2px 3px;
+}
+
+.search-input-container {
+  position: fixed;
+  top: 40px;
+  z-index: 50;
+  margin-left: -20px;
+  margin-right: -20px;
+
+  @media (max-width: 800px) {
+    top: 100px;
+  }
+}
+
+.search-result {
+  position: absolute;
+  top: 0;
+  padding-top: 160px;
+
+  @media (max-width: 800px) {
+    padding-top: 200px;
+  }
+}
+
+#search-cnt {
+  color: var(--color-fg-icon);
+  margin-top: -30px;
+  height: 30px;
+  padding-right: 15px;
+  text-align: end;
+  transition: opacity .2s ease-out;
+  user-select: none;
+  pointer-events: none;
+  position: relative;
+  z-index: 1;
+
+  &.hidden {
+    opacity: 0;
+    transition-timing-function: ease-in;
+  }
+}
+
+.search-preview {
+  margin-bottom: 20px;
+  color: var(--color-fg-secondary);
+
+  strong {
+    color: var(--color-fg);
+  }
+
+  .search-preview-ellipsis {
+    color: var(--color-fg-icon);
+    user-select: none;
+  }
 }
 
 /* States */
