@@ -147,17 +147,27 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
           score: kw.length,
         })),
       );
-      titleScore += countOccurance(post.metadata.title, kw) * TITLE_SCORE_MULTIPLIER;
+      titleScore +=
+        countOccurance(post.metadata.title, kw) * TITLE_SCORE_MULTIPLIER;
     }
     // No match
     if (hits.length === 0 && titleScore === 0) return [];
 
     // Only title hit
-    if (hits.length === 0) return [{ metadata: post.metadata, plain: post.plain, preview: [], score: titleScore }];
+    if (hits.length === 0)
+      return [
+        {
+          metadata: post.metadata,
+          plain: post.plain,
+          preview: [],
+          score: titleScore,
+        },
+      ];
 
     // Extra bonus for front and end
-    if(hits[0].start <= SEARCH_SIDE_BEARING) hits[0].score += START_END_BONUS;
-    if(hits[hits.length - 1].end >= text.length - SEARCH_SIDE_BEARING) hits[hits.length - 1].score += START_END_BONUS;
+    if (hits[0].start <= SEARCH_SIDE_BEARING) hits[0].score += START_END_BONUS;
+    if (hits[hits.length - 1].end >= text.length - SEARCH_SIDE_BEARING)
+      hits[hits.length - 1].score += START_END_BONUS;
 
     hits.sort((a, b) => a.start - b.start);
     let cur = findBestWindow(hits);
@@ -188,9 +198,10 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
       let filtered = region.filter(([_, start, end]) => start < end);
       if (filtered[0][1] > (regions[regions.length - 1]?.[2] ?? 0))
         regions.push(["ellipsis"]);
-      else if(regions.length > 0) {
+      else if (regions.length > 0) {
         let keIdx = filtered.findIndex(([type]) => type === "highlight");
-        if(keIdx === -1) throw new Error('Unexpected missing keyword in search region');
+        if (keIdx === -1)
+          throw new Error("Unexpected missing keyword in search region");
         regions[regions.length - 1][2] = filtered[keIdx][1];
         filtered = filtered.slice(keIdx);
       }

@@ -171,7 +171,7 @@ function updateBannerClass(given?: State): string {
 function parsePath(path: String): State {
   const postMatch = path.match(/^\/post\/([^\/]+)$/);
   if (path === "/") return { ty: "Home" };
-  else if(path === "/search") return { ty: "Search" };
+  else if (path === "/search") return { ty: "Search" };
   else if (path === "/about") return { ty: "About" };
   else if (postMatch !== null) return { ty: "Post", slug: postMatch[1] };
   else return { ty: "NotFound" };
@@ -249,8 +249,7 @@ async function transitionRender(
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if (state.ty === "Home") rendered = new List(data, register);
-  else if(state.ty === "Search") rendered = new Search(register);
-
+  else if (state.ty === "Search") rendered = new Search(register);
   // Render post
   else if (state.ty === "Post") {
     const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
@@ -287,8 +286,7 @@ async function transitionRender(
         if (sibling) renderedTitle = sibling as SVGSVGElement;
       }
       (rendered as Post).entry(renderedTitle);
-    }
-    else if (state.ty === "About") (rendered as About).entry();
+    } else if (state.ty === "About") (rendered as About).entry();
   }
 
   if (!SSR) {
@@ -417,7 +415,10 @@ namespace ListCommon {
     else return viewportWidth - 80;
   }
 
-  export function renderEntry(metadata: Metadata, extra: HTMLElement[] = []): HTMLElement {
+  export function renderEntry(
+    metadata: Metadata,
+    extra: HTMLElement[] = [],
+  ): HTMLElement {
     const dispTime = Temporal.Instant.from(metadata.publish_time);
     const dispDate = dispTime.toLocaleString(preferredLocale, {
       dateStyle: "medium",
@@ -494,8 +495,13 @@ class List implements RenderedEntity {
     if (SSR) register!(":prerendered", "list");
 
     const entries = posts.map((p) => {
-      const preview = p.plain.length > AUTO_POST_PREVIEW_LENGTH ? p.plain.substring(0, AUTO_POST_PREVIEW_LENGTH) + "..." : p.plain;
-      return ListCommon.renderEntry(p.metadata, [<div class="entry-preview">{preview}</div>]);
+      const preview =
+        p.plain.length > AUTO_POST_PREVIEW_LENGTH
+          ? p.plain.substring(0, AUTO_POST_PREVIEW_LENGTH) + "..."
+          : p.plain;
+      return ListCommon.renderEntry(p.metadata, [
+        <div class="entry-preview">{preview}</div>,
+      ]);
     });
     const list = <div class="list">{...entries}</div>;
     this.element = list;
@@ -548,22 +554,20 @@ class Search implements RenderedEntity {
   // Active search result container
   active: HTMLElement | null;
 
-  constructor(
-    _register?: (key: string, value: any) => void,
-  ) {
+  constructor(_register?: (key: string, value: any) => void) {
     this.active = null;
 
     // Never re-hydrate search, and also don't register
 
     const input = <input id="search-input"></input>;
 
-    if(!SSR) {
+    if (!SSR) {
       const searchDebouncer = new Debouncer(500);
       input.addEventListener("input", async () => {
         this.exitResult();
         await searchDebouncer.notify();
         const query = (input as HTMLInputElement).value;
-        if(query === '') this.renderResult();
+        if (query === "") this.renderResult();
         else {
           const result = await search(query);
           this.renderResult(result);
@@ -571,77 +575,74 @@ class Search implements RenderedEntity {
       });
     }
 
-    this.element = <div class="search">
-      <div class="search-input-container">
-        {input}
-        <div id="search-cnt">在此输入关键词</div>
+    this.element = (
+      <div class="search">
+        <div class="search-input-container">
+          {input}
+          <div id="search-cnt">在此输入关键词</div>
+        </div>
       </div>
-    </div>;
+    );
   }
 
   renderResult(results?: SearchResult[]) {
     const cntContainer = document.getElementById("search-cnt");
-    if(!results) {
-      if(cntContainer) {
+    if (!results) {
+      if (cntContainer) {
         cntContainer.innerText = "在此输入关键词";
-        cntContainer.classList.remove('hidden');
+        cntContainer.classList.remove("hidden");
       }
       return;
     }
 
     const cnt = results.length;
-    if(cntContainer) {
+    if (cntContainer) {
       cntContainer.innerText = `${cnt} 条结果`;
-      cntContainer.classList.remove('hidden');
+      cntContainer.classList.remove("hidden");
     }
 
-    const rendered = <div class="search-result">
-      {results.map((r) => {
-        const preview = r.preview.map(e => {
-          if(e[0] === 'ellipsis') return <span class="search-preview-ellipsis">...</span>;
-          else if(e[0] === 'text') return <span>{r.plain.slice(e[1], e[2])}</span>;
-          else if(e[0] === 'highlight') return <strong>{r.plain.slice(e[1], e[2])}</strong>;
-          else throw new Error("Unknown preview segment");
-        })
-        return ListCommon.renderEntry(r.metadata, [<div class="search-preview">{...preview}</div>]);
-      })}
-    </div>;
+    const rendered = (
+      <div class="search-result">
+        {results.map((r) => {
+          const preview = r.preview.map((e) => {
+            if (e[0] === "ellipsis")
+              return <span class="search-preview-ellipsis">...</span>;
+            else if (e[0] === "text")
+              return <span>{r.plain.slice(e[1], e[2])}</span>;
+            else if (e[0] === "highlight")
+              return <strong>{r.plain.slice(e[1], e[2])}</strong>;
+            else throw new Error("Unknown preview segment");
+          });
+          return ListCommon.renderEntry(r.metadata, [
+            <div class="search-preview">{...preview}</div>,
+          ]);
+        })}
+      </div>
+    );
     this.element.appendChild(rendered);
     this.active = rendered;
-    rendered.animate(
-      [
-        { opacity: 0, transform: "translateY(-20px)" },
-        {},
-      ],
-      {
-        duration: 200,
-        easing: "ease-out",
-        fill: "backwards",
-      },
-    )
+    rendered.animate([{ opacity: 0, transform: "translateY(-20px)" }, {}], {
+      duration: 200,
+      easing: "ease-out",
+      fill: "backwards",
+    });
   }
 
   entry(initialHome: boolean): typeof this {
-    this.element.animate(
-      [
-        { opacity: 0, },
-        {},
-      ],
-      {
-        delay: initialHome ? 700 : 200,
-        duration: 200,
-        easing: "ease-out",
-        fill: "backwards",
-      },
-    );
+    this.element.animate([{ opacity: 0 }, {}], {
+      delay: initialHome ? 700 : 200,
+      duration: 200,
+      easing: "ease-out",
+      fill: "backwards",
+    });
     return this;
   }
 
   async exitResult(endOpacity: number = 0) {
     const cntContainer = document.getElementById("search-cnt");
-    if(cntContainer) cntContainer.classList.add('hidden');
+    if (cntContainer) cntContainer.classList.add("hidden");
     const el = this.active;
-    if(!el) return;
+    if (!el) return;
 
     freezeScroll(el);
     return el
@@ -667,20 +668,13 @@ class Search implements RenderedEntity {
     const el = this.element;
     freezeScroll(el);
     return el
-      .animate(
-        [
-          {},
-          { opacity: 0, },
-        ],
-        {
-          duration: 200,
-          easing: "ease-in",
-          fill: "backwards",
-        },
-      )
+      .animate([{}, { opacity: 0 }], {
+        duration: 200,
+        easing: "ease-in",
+        fill: "backwards",
+      })
       .finished.then(() => el.remove());
   }
-  
 }
 
 /* Post rendering */
