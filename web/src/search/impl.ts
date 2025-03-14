@@ -20,7 +20,7 @@ function findAllIndices(text: string, kw: string): number[] {
     const idx = text.indexOf(kw, start);
     if (idx === -1) break;
     indices.push(idx);
-    start = idx + text.length;
+    start = idx + kw.length;
   }
   return indices;
 }
@@ -118,19 +118,12 @@ function findBestWindow(tokens: Token[]): Window {
   if (tokens.length === 0) throw new Error("No token to find best window");
   const memo = new WindowMemo();
   const jumptbl = genJumpTable(tokens);
+  console.log(tokens, jumptbl);
   return findBestWindowImpl(tokens, jumptbl, MAX_WINDOW_NUM, 0, memo)!;
 }
 
 function countOccurance(text: string, kw: string): number {
-  let count = 0;
-  let start = 0;
-  while (true) {
-    const idx = text.indexOf(kw, start);
-    if (idx === -1) break;
-    count++;
-    start = idx + kw.length;
-  }
-  return count;
+  return findAllIndices(text, kw).length;
 }
 
 export default function perform(posts: Post[], query: string): SearchResult[] {
@@ -190,10 +183,17 @@ export default function perform(posts: Post[], query: string): SearchResult[] {
         text.length,
       );
       region.push(["text", hits[cur.toToken - 1].end, epilogueEnd]);
+
       // Filter out zero-length areas
-      const filtered = region.filter(([_, start, end]) => start < end);
+      let filtered = region.filter(([_, start, end]) => start < end);
       if (filtered[0][1] > (regions[regions.length - 1]?.[2] ?? 0))
         regions.push(["ellipsis"]);
+      else if(regions.length > 0) {
+        let keIdx = filtered.findIndex(([type]) => type === "highlight");
+        if(keIdx === -1) throw new Error('Unexpected missing keyword in search region');
+        regions[regions.length - 1][2] = filtered[keIdx][1];
+        filtered = filtered.slice(keIdx);
+      }
       regions.push(...filtered);
 
       if (cur.tail === null) break;
