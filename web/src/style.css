@@ -456,7 +456,7 @@ nav {
   max-width: 600px;
   color: var(--color-fg-secondary);
   font-size: 14px;
-  line-height: 18px;
+  line-height: 24px;
   margin-bottom: 20px;
 }
 
@@ -880,7 +880,7 @@ root[data-view="about"] {
   margin-bottom: 20px;
   color: var(--color-fg-secondary);
   font-size: 14px;
-  line-height: 18px;
+  line-height: 24px;
 
   strong {
     color: var(--color-fg);
