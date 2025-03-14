@@ -54,6 +54,8 @@ type State =
       ty: "NotFound";
     };
 
+const AUTO_POST_PREVIEW_LENGTH = 100;
+
 interface RenderedEntity {
   element: HTMLElement;
   exit(): Promise<void>;
@@ -491,7 +493,10 @@ class List implements RenderedEntity {
     }
     if (SSR) register!(":prerendered", "list");
 
-    const entries = posts.map((p) => ListCommon.renderEntry(p.metadata));
+    const entries = posts.map((p) => {
+      const preview = p.plain.length > AUTO_POST_PREVIEW_LENGTH ? p.plain.substring(0, AUTO_POST_PREVIEW_LENGTH) + "..." : p.plain;
+      return ListCommon.renderEntry(p.metadata, [<div class="entry-preview">{preview}</div>]);
+    });
     const list = <div class="list">{...entries}</div>;
     this.element = list;
   }

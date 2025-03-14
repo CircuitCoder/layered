@@ -452,6 +452,14 @@ nav {
   font-weight: 900;
 }
 
+.entry-preview {
+  max-width: 400px;
+  color: var(--color-fg-secondary);
+  font-size: 14px;
+  line-height: 18px;
+  margin-bottom: 20px;
+}
+
 .entry-time {
   font-size: 14px;
   color: var(--color-fg-secondary);
@@ -870,6 +878,8 @@ root[data-view="about"] {
 .search-preview {
   margin-bottom: 20px;
   color: var(--color-fg-secondary);
+  font-size: 14px;
+  line-height: 18px;
 
   strong {
     color: var(--color-fg);
