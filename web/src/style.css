@@ -453,7 +453,7 @@ nav {
 }
 
 .entry-preview {
-  max-width: 400px;
+  max-width: 600px;
   color: var(--color-fg-secondary);
   font-size: 14px;
   line-height: 18px;
@@ -876,6 +876,7 @@ root[data-view="about"] {
 }
 
 .search-preview {
+  max-width: 600px;
   margin-bottom: 20px;
   color: var(--color-fg-secondary);
   font-size: 14px;
