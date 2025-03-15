@@ -356,15 +356,20 @@ function resetPrerenderedGiscusTheme() {
 }
 
 function setGiscusTheme(theme: string) {
-  for(const el of document.getElementsByTagName("giscus-widget"))
+  for (const el of document.getElementsByTagName("giscus-widget"))
     el.setAttribute("theme", theme);
-  for(const iframeRaw of document.querySelectorAll("iframe.giscus-frame")) {
+  for (const iframeRaw of document.querySelectorAll("iframe.giscus-frame")) {
     const iframe = iframeRaw as HTMLIFrameElement;
-    iframe?.contentWindow?.postMessage({ giscus: {
-      setConfig: {
-        theme: theme,
+    iframe?.contentWindow?.postMessage(
+      {
+        giscus: {
+          setConfig: {
+            theme: theme,
+          },
+        } as ISetConfigMessage,
       },
-    } as ISetConfigMessage}, 'https://giscus.app')
+      "https://giscus.app",
+    );
   }
 }
 
