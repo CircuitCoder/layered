@@ -66,7 +66,7 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
         let oid = oid?;
         log::debug!("Revwalk: {}", oid);
         let commit = repo.find_commit(oid)?;
-        let time_raw = commit.time();
+        let time_raw = commit.author().when();
         let timezone = chrono::FixedOffset::east_opt(time_raw.offset_minutes() * 60).unwrap();
         let time = timezone
             .timestamp_opt(time_raw.seconds(), 0)
