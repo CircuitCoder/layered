@@ -26,6 +26,7 @@ import { TitleResp } from "./typings/TitleResp";
 import { SearchResult } from "./search/impl";
 import { Metadata } from "./typings/Metadata";
 import { tick as renderTick } from "./render/render";
+import { ISetConfigMessage } from "giscus";
 
 /**
  * Application bootstrap
@@ -216,6 +217,7 @@ async function reflection(
   if (prerendered) {
     try {
       await transitionRehydrate(cn === "banner" && oldState.ty === "Vacant");
+      resetPrerenderedGiscusTheme();
       document.getElementById("root")!.removeAttribute("data-prerendered");
       return;
     } catch (e) {
@@ -345,6 +347,25 @@ function freezeScroll(el: HTMLElement) {
   el.style.setProperty("top", `-${scrollY}px`);
   // Override --scroll variable
   el.style.setProperty("--scroll", `${scrollY}`);
+}
+
+function resetPrerenderedGiscusTheme() {
+  const darkMode =
+    !SSR && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  setGiscusTheme(darkMode ? "dark_dimmed" : "light");
+}
+
+function setGiscusTheme(theme: string) {
+  for(const el of document.getElementsByTagName("giscus-widget"))
+    el.setAttribute("theme", theme);
+  for(const iframeRaw of document.querySelectorAll("iframe.giscus-frame")) {
+    const iframe = iframeRaw as HTMLIFrameElement;
+    iframe?.contentWindow?.postMessage({ giscus: {
+      setConfig: {
+        theme: theme,
+      },
+    } as ISetConfigMessage}, 'https://giscus.app')
+  }
 }
 
 function renderGiscus(title: string): HTMLElement {
