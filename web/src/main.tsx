@@ -25,6 +25,7 @@ import "giscus";
 import { TitleResp } from "./typings/TitleResp";
 import { SearchResult } from "./search/impl";
 import { Metadata } from "./typings/Metadata";
+import { tick as renderTick } from "./render/render";
 
 /**
  * Application bootstrap
@@ -127,6 +128,9 @@ export async function bootstrap(
   window.addEventListener("popstate", () => {
     reflection(document.location.pathname);
   });
+
+  // Kickoff render loop
+  requestAnimationFrame(renderTick);
 }
 
 /**
