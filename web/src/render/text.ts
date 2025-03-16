@@ -1,3 +1,4 @@
+import { NONAME } from "node:dns";
 import { RenderDimensions, WidthLine } from "../font";
 import { BBox } from "../typings/BBox";
 import { Constant, TransitionValue } from "./transition";
@@ -15,60 +16,26 @@ type Stroke = {
   offsetX: TransitionValue;
   offsetY: TransitionValue;
 
-  path: string;
+  path: Path2D;
   bbox: BBox;
-
-  prerendered: PrerenderedStroke | null;
 }
 
 const SIDE_BEARING = 10;
-const MAX_SIZE = 72;
-
-function prerenderStroke(path: string, bbox: BBox, size: number): PrerenderedStroke {
-  const p2d = new Path2D(path);
-  // Offset is (-bbox.left, -bbox.top)
-  const width = bbox.right - bbox.left;
-  const height = bbox.bottom - bbox.top;
-  const canvas = new OffscreenCanvas(Math.ceil(width * size + SIDE_BEARING * 2), Math.ceil(height * size + SIDE_BEARING * 2));
-  const ctx = canvas.getContext('2d')!;
-  // TODO: figure out the order of these transformations
-  ctx.translate(-bbox.left * size + SIDE_BEARING, -bbox.top * size + SIDE_BEARING);
-  ctx.scale(size, size);
-  ctx.fill(p2d);
-
-  return {
-    size,
-    img: canvas
-  }
-}
 
 function commitStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, t: number) {
-  if (stroke.prerendered === null)
-    stroke.prerendered = prerenderStroke(stroke.path, stroke.bbox, MAX_SIZE * 2);
+  const offsetX= stroke.offsetX.evalAt(t);
+  const offsetY= stroke.offsetY.evalAt(t);
 
-  const currentSize = stroke.size.evalAt(t);
-  const scale = currentSize / (MAX_SIZE * 2);
-  if(scale > 0.5)
-    console.warn(`Potential insufficent scale: ${scale}, MAX_SIZE=${MAX_SIZE}, currentSize=${currentSize}`);
-
-  // After scale, the origin goes to:
-  const originXAt = (stroke.bbox.left * MAX_SIZE * 2 + SIDE_BEARING) * scale;
-  const originYAt = (stroke.bbox.top * MAX_SIZE * 2 + SIDE_BEARING) * scale;
-
-  const committedXAt = stroke.offsetX.evalAt(t);
-  const committedYAt = stroke.offsetY.evalAt(t);
-  
-  const offsetX = committedXAt - originXAt;
-  const offsetY = committedYAt - originYAt;
+  const size = stroke.size.evalAt(t);
 
   // Drawing
   ctx.save();
   ctx.globalAlpha = stroke.opacity.evalAt(t);
   ctx.filter = `blur(${stroke.blur.evalAt(t)}px)`;
-  ctx.drawImage(
-    stroke.prerendered.img,
-    offsetX, offsetY,
-    stroke.prerendered.img.width * scale, stroke.prerendered.img.height * scale);
+  ctx.translate(offsetX, offsetY);
+  ctx.scale(size, size);
+  ctx.strokeStyle = "none";
+  ctx.fill(stroke.path);
   ctx.restore();
 }
 
@@ -100,9 +67,8 @@ export function initRender(
             offsetX: new Constant(chrX),
             offsetY: new Constant(lineY),
 
-            path: comp,
+            path: new Path2D(comp),
             bbox: chr.bbox, // FIXME: this is an super conservative estimation
-            prerendered: null,
           }
         });
 

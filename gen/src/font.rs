@@ -98,23 +98,23 @@ impl BBox {
     }
 }
 
-fn serialize_outline(outline: &Outline, em: f64) -> String {
+fn serialize_outline(outline: &Outline) -> String {
     let mut ret = String::new();
     for cmd in outline {
         match cmd {
             OutlineCmd::Move(x, y) => {
-                ret.push_str(&format!("M {} {}", x / em, -y / em));
+                ret.push_str(&format!("M {} {}", x, -y));
             }
             OutlineCmd::Line(x, y) => {
-                ret.push_str(&format!("L {} {}", x / em, -y / em));
+                ret.push_str(&format!("L {} {}", x, -y));
             }
             OutlineCmd::Quad { to, ctrl } => {
                 ret.push_str(&format!(
                     "Q {} {} {} {}",
-                    ctrl.0 / em,
-                    -ctrl.1 / em,
-                    to.0 / em,
-                    -to.1 / em
+                    ctrl.0,
+                    -ctrl.1,
+                    to.0,
+                    -to.1
                 ));
             }
             OutlineCmd::Cubic {
@@ -124,12 +124,12 @@ fn serialize_outline(outline: &Outline, em: f64) -> String {
             } => {
                 ret.push_str(&format!(
                     "C {} {} {} {} {} {}",
-                    ctrl_first.0 / em,
-                    -ctrl_first.1 / em,
-                    ctrl_second.0 / em,
-                    -ctrl_second.1 / em,
-                    to.0 / em,
-                    -to.1 / em
+                    ctrl_first.0,
+                    -ctrl_first.1,
+                    ctrl_second.0,
+                    -ctrl_second.1,
+                    to.0,
+                    -to.1
                 ));
             }
             OutlineCmd::Close => {
@@ -167,7 +167,7 @@ pub struct TitleResp {
     pub groups: Vec<GroupResp>,
     pub asc: f64,
     pub des: f64,
-    // pub em: u16,
+    pub em: u16,
 }
 
 // TODO: optimize: use slices
@@ -367,7 +367,7 @@ impl ttf_parser::OutlineBuilder for OutlineBuilder {
     }
 }
 
-pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
+pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
     let glyph = match face.glyph_index(c) {
         Some(gid) => gid,
         None => {
@@ -405,7 +405,7 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
     });
     let components_serialized = components
         .iter()
-        .map(|c| serialize_outline(c, em))
+        .map(|c| serialize_outline(c))
         .collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
@@ -413,13 +413,13 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
         components: components_serialized,
         char: c,
         bbox: BBox {
-            top: -bbox.y_max as f64 / em,
-            bottom: -bbox.y_min as f64 / em,
-            left: bbox.x_min as f64 / em,
-            right: bbox.x_max as f64 / em,
+            top: -bbox.y_max as f64,
+            bottom: -bbox.y_min as f64,
+            left: bbox.x_min as f64,
+            right: bbox.x_max as f64,
         },
         // bearing,
-        hadv: hadv as f64 / em,
+        hadv: hadv as f64,
     });
 
     r
@@ -449,7 +449,7 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
         .map(|(s, break_after)| -> anyhow::Result<GroupResp> {
             let chars = s
                 .chars()
-                .map(|c: char| parse_char(c, em as f64, face))
+                .map(|c: char| parse_char(c, face))
                 .collect::<anyhow::Result<Vec<_>>>()?;
             let hadv = chars.iter().map(|c| c.hadv).sum();
             Ok(GroupResp {
@@ -463,7 +463,7 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
 
     Ok(TitleResp {
         groups,
-        // em: face.units_per_em(),
+        em: face.units_per_em(),
         asc: face.ascender() as f64 / em as f64,
         des: face.descender() as f64 / em as f64,
     })

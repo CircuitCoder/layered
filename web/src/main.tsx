@@ -480,18 +480,23 @@ namespace ListCommon {
     // This will break SSR
     const [altRendered, altDims] = renderLine(
       metadata.title_outline,
-      getTitleSpace() / 24,
+      getTitleSpace() / 24 * metadata.title_outline.em,
     );
     const altLine = document.createElement('canvas');
-    altLine.width = Math.ceil((altDims?.opticalWidth ?? 0) * 24);
-    altLine.height = Math.ceil((altDims?.lineCnt ?? 0) * 40);
-    const altStrokes = initRender(altRendered, 40, 30, 24);
-    commitStrokes(altStrokes, altLine.getContext('2d')!, performance.now());
+    const dpr = window.devicePixelRatio;
+    altLine.width = Math.ceil(dpr * (altDims?.opticalWidth ?? 0) * 24 / metadata.title_outline.em);
+    altLine.height = Math.ceil(dpr * (altDims?.lineCnt ?? 0) * 40);
+    altLine.style.width = `${altLine.width / dpr}px`;
+    altLine.style.height = `${altLine.height / dpr}px`;
+
+    const altStrokes = initRender(altRendered, 40, 30, 24 / metadata.title_outline.em);
+    const ctx = altLine.getContext('2d')!;
+    ctx.scale(dpr, dpr);
+    commitStrokes(altStrokes, ctx, performance.now());
 
     const entry = (
       <div class="entry">
         <div class="entry-title" style={{}}>
-          {line}
           {altLine}
           <a class="entry-title-tangible" href={`/post/${metadata.id}`}>
             {metadata.title}
