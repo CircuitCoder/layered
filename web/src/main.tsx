@@ -27,6 +27,7 @@ import { SearchResult } from "./search/impl";
 import { Metadata } from "./typings/Metadata";
 import { tick as renderTick } from "./render/render";
 import { ISetConfigMessage } from "giscus";
+import { commitStrokes, initRender } from "./render/text";
 
 /**
  * Application bootstrap
@@ -475,10 +476,23 @@ namespace ListCommon {
       };
     }
 
+    // FIXME: WIP debug: canvas rendered line
+    // This will break SSR
+    const [altRendered, altDims] = renderLine(
+      metadata.title_outline,
+      getTitleSpace() / 24,
+    );
+    const altLine = document.createElement('canvas');
+    altLine.width = Math.ceil((altDims?.opticalWidth ?? 0) * 24);
+    altLine.height = Math.ceil((altDims?.lineCnt ?? 0) * 40);
+    const altStrokes = initRender(altRendered, 40, 30, 24);
+    commitStrokes(altStrokes, altLine.getContext('2d')!, performance.now());
+
     const entry = (
       <div class="entry">
         <div class="entry-title" style={{}}>
           {line}
+          {altLine}
           <a class="entry-title-tangible" href={`/post/${metadata.id}`}>
             {metadata.title}
           </a>

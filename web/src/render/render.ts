@@ -1,7 +1,5 @@
 // Canvas render loop and related stuff
 
-import { compileFunction } from "node:vm"
-
 type Renderable = (now: number, ctx: HTMLCanvasElement) => void;
 
 // Render group is bounded to a canvas

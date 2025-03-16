@@ -20,7 +20,7 @@ export interface TransitionValue {
   evalAt(t: number): number;
 }
 
-class Constant implements TransitionValue {
+export class Constant implements TransitionValue {
   constructor(private val: number) {}
 
   evalAt(_t: number): number {
@@ -28,7 +28,7 @@ class Constant implements TransitionValue {
   }
 }
 
-class BezierEasingFunction implements TransitionValue {
+export class BezierEasingFunction implements TransitionValue {
   constructor(private x1: number, private y1: number, private x2: number, private y2: number) {
     // TODO: assert
   }
@@ -41,7 +41,7 @@ class BezierEasingFunction implements TransitionValue {
   }
 }
 
-class Transition implements TransitionValue {
+export class Transition implements TransitionValue {
   constructor(
     private startVal: number, private endVal: number,
     private startT: number, private duration: number,
