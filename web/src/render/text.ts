@@ -34,7 +34,6 @@ function commitStroke(ctx: CanvasRenderingContext2D, stroke: Stroke, t: number) 
   ctx.filter = `blur(${stroke.blur.evalAt(t)}px)`;
   ctx.translate(offsetX, offsetY);
   ctx.scale(size, size);
-  ctx.strokeStyle = "none";
   ctx.fill(stroke.path);
   ctx.restore();
 }

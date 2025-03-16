@@ -4,16 +4,23 @@ type Renderable = (now: number, ctx: HTMLCanvasElement) => void;
 
 // Render group is bounded to a canvas
 const groups = new WeakMap<HTMLCanvasElement, Renderable>();
-const rerenders = new Set<HTMLCanvasElement>();
+let rerenders = new Set<HTMLCanvasElement>();
 
 export function tick(now: number) {
-  for (const canvas of rerenders) {
+  const oldRerenders = new Set(rerenders);
+  rerenders.clear();
+  for (const canvas of oldRerenders) {
     const renderable = groups.get(canvas);
     if (renderable !== undefined)
       renderable(now, canvas);
   }
-  rerenders.clear();
   requestAnimationFrame(tick);
+}
+
+export function register(canvas: HTMLCanvasElement, renderable: Renderable) {
+  groups.set(canvas, renderable);
+  // Immediately render the first frame
+  renderable(performance.now(), canvas);
 }
 
 export function queue(canvas: HTMLCanvasElement) {

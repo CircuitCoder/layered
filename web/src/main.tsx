@@ -25,7 +25,7 @@ import "giscus";
 import { TitleResp } from "./typings/TitleResp";
 import { SearchResult } from "./search/impl";
 import { Metadata } from "./typings/Metadata";
-import { tick as renderTick } from "./render/render";
+import * as Render from "./render/render";
 import { ISetConfigMessage } from "giscus";
 import { commitStrokes, initRender } from "./render/text";
 
@@ -132,7 +132,7 @@ export async function bootstrap(
   });
 
   // Kickoff render loop
-  requestAnimationFrame(renderTick);
+  requestAnimationFrame(Render.tick);
 }
 
 /**
@@ -490,9 +490,15 @@ namespace ListCommon {
     altLine.style.height = `${altLine.height / dpr}px`;
 
     const altStrokes = initRender(altRendered, 40, 30, 24 / metadata.title_outline.em);
-    const ctx = altLine.getContext('2d')!;
-    ctx.scale(dpr, dpr);
-    commitStrokes(altStrokes, ctx, performance.now());
+    Render.register(altLine, (now, canvas) => {
+      const ctx = canvas.getContext('2d')!;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      commitStrokes(altStrokes, ctx, performance.now());
+      ctx.restore();
+      Render.queue(canvas);
+    });
 
     const entry = (
       <div class="entry">
