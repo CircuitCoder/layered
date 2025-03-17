@@ -733,6 +733,12 @@ pre:has(code) {
   overflow: auto;
 }
 
+code:not(pre code) {
+  padding: 0 5px;
+  border-radius: 5px;
+  background-color: color-mix(in srgb, var(--color-fg) 5%, var(--color-bg) 95%);
+}
+
 /* About */
 .about {
   left: 0;
