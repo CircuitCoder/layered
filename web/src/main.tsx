@@ -983,13 +983,13 @@ class Post implements RenderedEntity {
             {
               transform: `
           translate(${dx}px, ${dy}px)
-          scale(24)
+          scale(calc(24 / var(--em)))
           `,
             },
             {},
           ],
           {
-            delay: Math.random() * 200 + (dist / maxDist) * 200,
+            delay: Math.random() * 200 + (dist / maxDist) * 300,
             duration: 200,
             easing: "cubic-bezier(0, 0, 0, 1)",
             fill: "both",
@@ -1014,7 +1014,7 @@ class Post implements RenderedEntity {
       const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
 
       const freeKeyframe = {
-        transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale}) scale(var(--size))`,
+        transform: `translate(${offsetX}px, ${offsetY}px) scale(calc(${scale} * var(--size) / var(--em)))`,
         opacity: 0,
         filter: "blur(0.2px)",
       };

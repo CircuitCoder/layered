@@ -372,7 +372,7 @@ nav {
 
   & path {
     transform-origin: 0 0;
-    transform: scale(calc(var(--size) * var(--var-scale)));
+    transform: scale(calc(var(--size) * var(--var-scale) / var(--em)));
   }
 
   pointer-events: none;
@@ -388,7 +388,8 @@ nav {
   & .line {
     transform:
       translateY(calc(var(--line-idx) * var(--line-height) + var(--baseline-y)))
-      translateX(calc((var(--optical-width) - var(--line-optical-width)) * var(--size) * 0.5px));
+      translateX(calc((var(--optical-width) - var(--line-optical-width)) * var(--size) * 0.5px))
+      ;
   }
 }
 

@@ -6,6 +6,7 @@ export type RenderDimensions = {
   totalWidth: number;
   opticalWidth: number;
   lineCnt: number;
+  unitsPerEm: number;
 };
 
 export type WidthLine = {
@@ -38,7 +39,7 @@ export function materialize(
           <g
             class="glyph"
             style={{
-              "--in-grp-xdiff": grpAccum.toString(),
+              "--in-grp-xdiff": (grpAccum / dim.unitsPerEm).toString(),
             }}
           >
             {chr.components.map((comp) => (
@@ -54,11 +55,11 @@ export function materialize(
         <g
           class="var-group"
           style={{
-            "--local-grp-idx": localGrpIdx.toString(),
+            "--local-grp-idx": (localGrpIdx / dim.unitsPerEm).toString(),
             "--grp-idx": grpCnt.toString(),
-            "--grp-line-xdiff": lineAccum.toString(),
-            "--grp-width": grp.hadv.toString(),
-            "--grp-xdiff": globalXdiff.toString(),
+            "--grp-line-xdiff": (lineAccum / dim.unitsPerEm).toString(),
+            "--grp-width": (grp.hadv / dim.unitsPerEm).toString(),
+            "--grp-xdiff": (globalXdiff / dim.unitsPerEm).toString(),
           }}
           data-text={grp.text}
         >
@@ -78,7 +79,7 @@ export function materialize(
         class="line"
         style={{
           "--line-idx": lineIdx.toString(),
-          "--line-optical-width": line.optWidth.toString(),
+          "--line-optical-width": (line.optWidth / dim.unitsPerEm).toString(),
         }}
       >
         {grps}
@@ -90,9 +91,10 @@ export function materialize(
     <svg
       class={["title", ...additionalClasses]}
       style={{
+        "--em": dim.unitsPerEm.toString(),
         "--line-cnt": dim.lineCnt.toString(),
         "--grp-cnt": grpCnt.toString(),
-        "--optical-width": dim.opticalWidth.toString(),
+        "--optical-width": (dim.opticalWidth / dim.unitsPerEm).toString(),
       }}
     >
       {linesEl}
@@ -127,9 +129,10 @@ export function render(
   maxWidth: number = Infinity,
 ): [WidthLine[], RenderDimensions] {
   const widthLines: WidthLine[] = [];
+  const maxWidthInUnit = maxWidth * line.em;
   let remaining = line.groups;
   while (remaining.length > 0) {
-    const line = nextLine(remaining, maxWidth);
+    const line = nextLine(remaining, maxWidthInUnit);
     widthLines.push(line);
     remaining = remaining.slice(line.line.length);
   }
@@ -141,6 +144,7 @@ export function render(
       0,
     ),
     lineCnt: widthLines.length,
+    unitsPerEm: line.em,
   };
 
   return [widthLines, dimensions];

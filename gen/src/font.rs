@@ -30,30 +30,6 @@ pub enum OutlineCmd {
 }
 
 impl OutlineCmd {
-    pub fn draw_within_bbox(&self, bbox: &BBox) -> OutlineCmd {
-        match self {
-            OutlineCmd::Move(x, y) => OutlineCmd::Move(x - bbox.left, bbox.bottom - y),
-            OutlineCmd::Line(x, y) => OutlineCmd::Line(x - bbox.left, bbox.bottom - y),
-            OutlineCmd::Quad {
-                to: (tx, ty),
-                ctrl: (cx, cy),
-            } => OutlineCmd::Quad {
-                to: (tx - bbox.left, bbox.bottom - ty),
-                ctrl: (cx - bbox.left, bbox.bottom - cy),
-            },
-            OutlineCmd::Cubic {
-                to: (tx, ty),
-                ctrl_first: (c1x, c1y),
-                ctrl_second: (c2x, c2y),
-            } => OutlineCmd::Cubic {
-                to: (tx - bbox.left, bbox.bottom - ty),
-                ctrl_first: (c1x - bbox.left, bbox.bottom - c1y),
-                ctrl_second: (c2x - bbox.left, bbox.bottom - c2y),
-            },
-            OutlineCmd::Close => OutlineCmd::Close,
-        }
-    }
-
     pub fn dst_pt(&self) -> Option<(f64, f64)> {
         match self {
             OutlineCmd::Move(x, y) => Some((*x, *y)),
@@ -82,39 +58,29 @@ pub type Outline = Vec<OutlineCmd>;
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct BBox {
-    pub top: f64,
-    pub bottom: f64,
-    pub left: f64,
-    pub right: f64,
+    pub top: i16,
+    pub bottom: i16,
+    pub left: i16,
+    pub right: i16,
 }
 
-impl BBox {
-    pub fn width(&self) -> f64 {
-        self.right - self.left
-    }
-
-    pub fn height(&self) -> f64 {
-        self.bottom - self.top
-    }
-}
-
-fn serialize_outline(outline: &Outline, em: f64) -> String {
+fn serialize_outline(outline: &Outline) -> String {
     let mut ret = String::new();
     for cmd in outline {
         match cmd {
             OutlineCmd::Move(x, y) => {
-                ret.push_str(&format!("M {} {}", x / em, -y / em));
+                ret.push_str(&format!("M {} {}", x, -y));
             }
             OutlineCmd::Line(x, y) => {
-                ret.push_str(&format!("L {} {}", x / em, -y / em));
+                ret.push_str(&format!("L {} {}", x, -y));
             }
             OutlineCmd::Quad { to, ctrl } => {
                 ret.push_str(&format!(
                     "Q {} {} {} {}",
-                    ctrl.0 / em,
-                    -ctrl.1 / em,
-                    to.0 / em,
-                    -to.1 / em
+                    ctrl.0,
+                    -ctrl.1,
+                    to.0,
+                    -to.1
                 ));
             }
             OutlineCmd::Cubic {
@@ -124,12 +90,12 @@ fn serialize_outline(outline: &Outline, em: f64) -> String {
             } => {
                 ret.push_str(&format!(
                     "C {} {} {} {} {} {}",
-                    ctrl_first.0 / em,
-                    -ctrl_first.1 / em,
-                    ctrl_second.0 / em,
-                    -ctrl_second.1 / em,
-                    to.0 / em,
-                    -to.1 / em
+                    ctrl_first.0,
+                    -ctrl_first.1,
+                    ctrl_second.0,
+                    -ctrl_second.1,
+                    to.0,
+                    -to.1
                 ));
             }
             OutlineCmd::Close => {
@@ -148,7 +114,7 @@ pub struct CharResp {
     pub components: Vec<String>,
     pub bbox: BBox,
     // pub bearing: i16,
-    pub hadv: f64,
+    pub hadv: u16,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
@@ -157,7 +123,8 @@ pub struct CharResp {
 pub struct GroupResp {
     pub chars: Vec<CharResp>,
     pub text: String,
-    pub hadv: f64,
+    #[ts(type = "number")]
+    pub hadv: u64,
     pub break_after: bool,
 }
 
@@ -165,9 +132,9 @@ pub struct GroupResp {
 #[ts(export)]
 pub struct TitleResp {
     pub groups: Vec<GroupResp>,
-    pub asc: f64,
-    pub des: f64,
-    // pub em: u16,
+    pub asc: i16,
+    pub des: i16,
+    pub em: u16,
 }
 
 // TODO: optimize: use slices
@@ -367,7 +334,7 @@ impl ttf_parser::OutlineBuilder for OutlineBuilder {
     }
 }
 
-pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
+pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> {
     let glyph = match face.glyph_index(c) {
         Some(gid) => gid,
         None => {
@@ -405,7 +372,7 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
     });
     let components_serialized = components
         .iter()
-        .map(|c| serialize_outline(c, em))
+        .map(|c| serialize_outline(c))
         .collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
@@ -413,21 +380,19 @@ pub fn parse_char(c: char, em: f64, face: &ttf_parser::Face) -> anyhow::Result<C
         components: components_serialized,
         char: c,
         bbox: BBox {
-            top: -bbox.y_max as f64 / em,
-            bottom: -bbox.y_min as f64 / em,
-            left: bbox.x_min as f64 / em,
-            right: bbox.x_max as f64 / em,
+            top: -bbox.y_max,
+            bottom: -bbox.y_min,
+            left: bbox.x_min,
+            right: bbox.x_max,
         },
         // bearing,
-        hadv: hadv as f64 / em,
+        hadv,
     });
 
     r
 }
 
 pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<TitleResp> {
-    let em = face.units_per_em();
-
     // Segmentation & line-break
     use unicode_segmentation::UnicodeSegmentation;
     let segmented: BTreeMap<usize, bool> = title
@@ -449,9 +414,9 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
         .map(|(s, break_after)| -> anyhow::Result<GroupResp> {
             let chars = s
                 .chars()
-                .map(|c: char| parse_char(c, em as f64, face))
+                .map(|c: char| parse_char(c, face))
                 .collect::<anyhow::Result<Vec<_>>>()?;
-            let hadv = chars.iter().map(|c| c.hadv).sum();
+            let hadv = chars.iter().map(|c| c.hadv as u64).sum();
             Ok(GroupResp {
                 chars,
                 text: s.to_string(),
@@ -463,9 +428,9 @@ pub fn parse_title(title: &str, face: &ttf_parser::Face) -> anyhow::Result<Title
 
     Ok(TitleResp {
         groups,
-        // em: face.units_per_em(),
-        asc: face.ascender() as f64 / em as f64,
-        des: face.descender() as f64 / em as f64,
+        em: face.units_per_em(),
+        asc: face.ascender(),
+        des: face.descender(),
     })
 }
 
