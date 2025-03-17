@@ -1,7 +1,7 @@
 use std::{collections::HashMap, os::unix::prelude::OsStrExt, path::Path};
 
 use chrono::TimeZone;
-use git2::Sort;
+use git2::{Oid, Sort};
 use regex::Regex;
 use serde::Serialize;
 
@@ -35,7 +35,7 @@ pub struct Metadata {
 
 pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow::Result<Vec<Post>> {
     let entries = std::fs::read_dir(&dir)?;
-    let mut pre: HashMap<String, (ParsedMarkdown, Option<DT>, Option<DT>)> = HashMap::new();
+    let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> = HashMap::new();
 
     for entry in entries {
         let entry = entry?;
@@ -91,12 +91,12 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
             log::debug!("Walk at {}", name);
             let cached = pre.get_mut(name);
             if let Some((_, ref mut creation, ref mut update)) = cached {
-                if update.is_none() {
-                    *update = Some(time);
+                if update.is_none() || update.unwrap().1 == content.id() {
+                    *update = Some((time, content.id()));
                 }
 
                 // TODO: asserts that if creation already exists, it cannot come before `time`
-                *creation = Some(time);
+                *creation = Some((time, content.id()));
             }
         }
     }
@@ -110,11 +110,13 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
                 log::info!("Processing {}", filename);
                 let creation =
                     creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
-                let publish_time = pre.metadata.force_publish_time.unwrap_or(creation);
-                let mut update_time = pre.metadata.force_update_time.or(update);
-                if update_time == Some(publish_time) {
-                    update_time = None;
-                }
+                let publish_time = pre.metadata.force_publish_time.unwrap_or(creation.0);
+                let reduced_update_time = update.and_then(|(t, id)| if id == creation.1 {
+                    None
+                } else {
+                    Some(t)
+                });
+                let update_time = pre.metadata.force_update_time.or(reduced_update_time);
 
                 let filename_match = filename_re
                     .captures(&filename)
