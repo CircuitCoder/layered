@@ -584,6 +584,7 @@ nav {
     align-items: center;
   }
 
+
   & svg:not(.title) {
     height: 18px;
     fill: var(--color-fg-icon);
@@ -591,6 +592,10 @@ nav {
 
   font-size: 14px;
   line-height: 18px;
+}
+
+.post-metadata-tag:not(:first-of-type){
+  margin-left: 5px;
 }
 
 .post-metadata {
