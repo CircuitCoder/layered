@@ -739,6 +739,15 @@ code:not(pre code) {
   background-color: color-mix(in srgb, var(--color-fg) 5%, var(--color-bg) 95%);
 }
 
+a:has(> code) {
+  border-bottom: none;
+  text-decoration-line: underline;
+  text-decoration-color: var(--color-fg-icon);
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
 /* About */
 .about {
   left: 0;
