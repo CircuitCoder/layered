@@ -35,7 +35,8 @@ pub struct Metadata {
 
 pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow::Result<Vec<Post>> {
     let entries = std::fs::read_dir(&dir)?;
-    let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> = HashMap::new();
+    let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> =
+        HashMap::new();
 
     for entry in entries {
         let entry = entry?;
@@ -111,11 +112,8 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
                 let creation =
                     creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
                 let publish_time = pre.metadata.force_publish_time.unwrap_or(creation.0);
-                let reduced_update_time = update.and_then(|(t, id)| if id == creation.1 {
-                    None
-                } else {
-                    Some(t)
-                });
+                let reduced_update_time =
+                    update.and_then(|(t, id)| if id == creation.1 { None } else { Some(t) });
                 let update_time = pre.metadata.force_update_time.or(reduced_update_time);
 
                 let filename_match = filename_re

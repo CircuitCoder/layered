@@ -75,13 +75,7 @@ fn serialize_outline(outline: &Outline) -> String {
                 ret.push_str(&format!("L {} {}", x, -y));
             }
             OutlineCmd::Quad { to, ctrl } => {
-                ret.push_str(&format!(
-                    "Q {} {} {} {}",
-                    ctrl.0,
-                    -ctrl.1,
-                    to.0,
-                    -to.1
-                ));
+                ret.push_str(&format!("Q {} {} {} {}", ctrl.0, -ctrl.1, to.0, -to.1));
             }
             OutlineCmd::Cubic {
                 to,
@@ -90,12 +84,7 @@ fn serialize_outline(outline: &Outline) -> String {
             } => {
                 ret.push_str(&format!(
                     "C {} {} {} {} {} {}",
-                    ctrl_first.0,
-                    -ctrl_first.1,
-                    ctrl_second.0,
-                    -ctrl_second.1,
-                    to.0,
-                    -to.1
+                    ctrl_first.0, -ctrl_first.1, ctrl_second.0, -ctrl_second.1, to.0, -to.1
                 ));
             }
             OutlineCmd::Close => {
@@ -370,10 +359,7 @@ pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> 
             lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(b.iter().cloned()));
         return a_bbox.min.x.partial_cmp(&b_bbox.min.x).unwrap();
     });
-    let components_serialized = components
-        .iter()
-        .map(|c| serialize_outline(c))
-        .collect();
+    let components_serialized = components.iter().map(|c| serialize_outline(c)).collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
     let r = Ok(CharResp {
