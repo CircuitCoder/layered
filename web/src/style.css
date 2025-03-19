@@ -722,6 +722,12 @@ nav {
 blockquote {
   border-left: rgba(0,0,0,.3) 10px solid;
   background: rgba(0,0,0,.05);
+  @media (prefers-color-scheme: dark) {
+    &:not(.light) {
+      border-left: rgba(0,0,0,.5) 10px solid;
+      background: rgba(0,0,0,.2);
+    }
+  }
   margin: 0;
   padding: 0px 20px 0 30px;
   border-radius: 8px;
