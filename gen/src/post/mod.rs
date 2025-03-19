@@ -109,11 +109,15 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
         .map(
             |(filename, (pre, creation, update))| -> anyhow::Result<Post> {
                 log::info!("Processing {}", filename);
-                let creation =
-                    creation.ok_or_else(|| anyhow::anyhow!("{} is not created?!", filename))?;
-                let publish_time = pre.metadata.force_publish_time.unwrap_or(creation.0);
+                let publish_time = pre.metadata.force_publish_time.or(creation.map(|e| e.0)).unwrap_or_else(
+                    || {
+                        log::warn!("Unpublished post: {}", filename);
+                        chrono::Local::now().fixed_offset()
+                    }
+                );
+                // TODO: check filename for publish time, check if they match
                 let reduced_update_time =
-                    update.and_then(|(t, id)| if id == creation.1 { None } else { Some(t) });
+                    update.and_then(|(t, id)| if id == creation.unwrap().1 { None } else { Some(t) });
                 let update_time = pre.metadata.force_update_time.or(reduced_update_time);
 
                 let filename_match = filename_re
