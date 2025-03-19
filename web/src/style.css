@@ -729,6 +729,10 @@ blockquote {
   display: flow-root;
 }
 
+blockquote:has(> ul) {
+  padding-left: 5px;
+}
+
 pre:has(code) {
   background: #002b36;
   color: #839496;
@@ -751,6 +755,10 @@ a:has(> code) {
   text-decoration-style: dotted;
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
+}
+
+.post img {
+  max-width: 100%;
 }
 
 /* About */
