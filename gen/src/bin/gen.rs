@@ -33,6 +33,10 @@ struct Args {
     /// Font subset output
     #[arg(long)]
     subset_font: Option<PathBuf>,
+
+    /// Feed summary target length in bytes
+    #[arg(long, default_value = "200")]
+    feed_summary_len: usize,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -71,7 +75,7 @@ fn main() -> anyhow::Result<()> {
         let dst = args.feed.unwrap();
         log::info!("Generating feed to: {}", dst.display());
 
-        let feed = gen::feed::feed(&f, &posts)?;
+        let feed = gen::feed::feed(&f, &posts, args.feed_summary_len)?;
         feed.write_to(File::create(dst)?)?;
     }
 

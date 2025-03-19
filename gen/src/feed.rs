@@ -11,9 +11,24 @@ pub struct FeedConfig {
     author: String,
 }
 
-fn entry(cfg: &FeedConfig, post: &Post) -> anyhow::Result<Entry> {
+fn entry(cfg: &FeedConfig, post: &Post, summary_len: usize) -> anyhow::Result<Entry> {
     let uri = format!("{}/post/{}", cfg.base, post.metadata.id);
     let uri = Url::parse(&uri)?;
+
+    let mut summary_len = summary_len;
+    if summary_len > post.plain.len() {
+        summary_len = post.plain.len();
+    } else {
+        while !post.plain.is_char_boundary(summary_len) {
+            summary_len += 1;
+        }
+    }
+
+    let summary = if summary_len == post.plain.len() {
+        post.plain.to_owned()
+    } else {
+        post.plain[..summary_len].to_owned() + "..."
+    };
 
     let entry = EntryBuilder::default()
         .id(uri.clone())
@@ -29,7 +44,7 @@ fn entry(cfg: &FeedConfig, post: &Post) -> anyhow::Result<Entry> {
                 .rel("alternate".to_owned())
                 .build(),
         )
-        .summary(Text::plain(post.plain.clone())) // TODO: use summary instead if we got an auto-summarizer
+        .summary(Text::plain(summary)) // TODO: use summary instead if we got an auto-summarizer
         .build();
 
     // TODO: english version
@@ -37,14 +52,14 @@ fn entry(cfg: &FeedConfig, post: &Post) -> anyhow::Result<Entry> {
     Ok(entry)
 }
 
-pub fn feed(cfg: &FeedConfig, posts: &[Post]) -> anyhow::Result<Feed> {
+pub fn feed(cfg: &FeedConfig, posts: &[Post], summary_len: usize) -> anyhow::Result<Feed> {
     let latest_modification = posts
         .iter()
         .map(|p| p.metadata.update_time.unwrap_or(p.metadata.publish_time))
         .max()
         .unwrap();
 
-    let entries: Vec<_> = posts.iter().map(|p| entry(cfg, p)).try_collect()?;
+    let entries: Vec<_> = posts.iter().map(|p| entry(cfg, p, summary_len)).try_collect()?;
 
     let generator = Generator {
         value: "Layered".to_owned(),
