@@ -1016,7 +1016,7 @@ class Post implements RenderedEntity {
       const freeKeyframe = {
         transform: `translate(${offsetX}px, ${offsetY}px) scale(calc(${scale} * var(--size) / var(--em)))`,
         opacity: 0,
-        filter: "blur(0.2px)",
+        filter: "blur(calc(0.2px * var(--em)))",
       };
 
       const keyframes = entry ? [freeKeyframe, {}] : [{}, freeKeyframe];
