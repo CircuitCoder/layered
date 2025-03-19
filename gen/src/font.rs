@@ -336,7 +336,8 @@ pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> 
     let bbox = match face.outline_glyph(glyph, &mut builder) {
         Some(bbox) => bbox,
         None => {
-            log::warn!("Glyph \"{}\" has corrupted outline.", c);
+            // Is space
+            log::debug!("Glyph \"{}\" has empty outline.", c);
             // Manually craft an bbox
             Rect {
                 x_min: 0,
