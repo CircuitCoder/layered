@@ -767,6 +767,10 @@ a:has(> code) {
   max-width: 100%;
 }
 
+.katex-html {
+  display: none;
+}
+
 /* About */
 .about {
   left: 0;

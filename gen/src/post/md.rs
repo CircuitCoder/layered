@@ -110,6 +110,35 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
                     Event::Text(text) if in_codeblock.is_some() => {
                         codeblock.push_str(text.as_ref());
                     }
+                    Event::DisplayMath(s) => {
+                        let opts = katex::Opts::builder()
+                            .display_mode(true)
+                            .output_type(katex::OutputType::HtmlAndMathml)
+                            .max_size(50f64)
+                            .build().unwrap();
+                        yield match katex::render_with_opts(s.as_ref(), opts) {
+                            Ok(r) => Event::Html(r.into()),
+                            Err(e) => {
+                                log::warn!("Failed to render math: {}", e);
+                                log::warn!("Math source: {}", s);
+                                Event::DisplayMath(s)
+                            }
+                        }
+                    },
+                    Event::InlineMath(s) => {
+                        let opts = katex::Opts::builder()
+                            .display_mode(false)
+                            .output_type(katex::OutputType::HtmlAndMathml)
+                            .build().unwrap();
+                        yield match katex::render_with_opts(s.as_ref(), opts) {
+                            Ok(r) => Event::Html(r.into()),
+                            Err(e) => {
+                                log::warn!("Failed to render math: {}", e);
+                                log::warn!("Math source: {}", s);
+                                Event::InlineMath(s)
+                            }
+                        }
+                    },
                     e => {
                         assert!(in_codeblock.is_none());
                         yield e;
