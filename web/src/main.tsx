@@ -250,7 +250,7 @@ async function transitionRender(
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
-  if (state.ty === "Home") rendered = new List(data, register);
+  if (state.ty === "Home") rendered = new List(data.filter(e => !e.metadata.hidden), register);
   else if (state.ty === "Search") rendered = new Search(register);
   // Render post
   else if (state.ty === "Post") {

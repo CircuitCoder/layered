@@ -59,7 +59,9 @@ pub fn feed(cfg: &FeedConfig, posts: &[Post], summary_len: usize) -> anyhow::Res
         .max()
         .unwrap();
 
-    let entries: Vec<_> = posts.iter().map(|p| entry(cfg, p, summary_len)).try_collect()?;
+    let entries: Vec<_> = posts.iter().filter_map(|p| {
+        p.metadata.hidden.then(|| entry(cfg, p, summary_len))
+    }).try_collect()?;
 
     let generator = Generator {
         value: "Layered".to_owned(),

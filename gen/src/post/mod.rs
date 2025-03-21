@@ -31,6 +31,7 @@ pub struct Metadata {
     #[ts(as = "Option<String>")]
     pub update_time: Option<DT>,
     pub title_outline: TitleResp,
+    pub hidden: bool,
 }
 
 pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow::Result<Vec<Post>> {
@@ -135,6 +136,7 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
                         id: id.to_owned(),
                         title: pre.metadata.title,
                         tags: pre.metadata.tags,
+                        hidden: pre.metadata.hidden,
                         publish_time,
                         update_time,
                         title_outline,

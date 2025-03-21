@@ -18,6 +18,7 @@ pub struct PartialMetadata {
     pub tags: Vec<String>,
     pub force_publish_time: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub hidden: bool,
 }
 
 fn highlight_code_html(
@@ -198,6 +199,7 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
         tags: Vec::new(),
         force_publish_time: None,
         force_update_time: None,
+        hidden: false,
     };
 
     for line in fm.trim().lines() {
@@ -216,6 +218,9 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
                 }
                 "force_update_time" => {
                     result.force_update_time = Some(chrono::DateTime::parse_from_rfc3339(value)?);
+                }
+                "hidden" => {
+                    result.hidden = value.parse()?;
                 }
                 _ => {
                     return Err(anyhow::anyhow!("Unsupported frontmatter key: {}", key));
