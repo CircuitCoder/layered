@@ -52,14 +52,13 @@ fn entry(cfg: &FeedConfig, post: &Post, summary_len: usize) -> anyhow::Result<En
     Ok(entry)
 }
 
-pub fn feed(cfg: &FeedConfig, posts: &[Post], summary_len: usize) -> anyhow::Result<Feed> {
-    let latest_modification = posts
-        .iter()
+pub fn feed<'a, I: Iterator<Item = &'a Post> + Clone>(cfg: &FeedConfig, posts: I, summary_len: usize) -> anyhow::Result<Feed> {
+    let latest_modification = posts.clone()
         .map(|p| p.metadata.update_time.unwrap_or(p.metadata.publish_time))
         .max()
         .unwrap();
 
-    let entries: Vec<_> = posts.iter().filter_map(|p| {
+    let entries: Vec<_> = posts.filter_map(|p| {
         (!p.metadata.hidden).then(|| entry(cfg, p, summary_len))
     }).try_collect()?;
 
