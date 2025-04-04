@@ -21,7 +21,7 @@ async function renderPath(path: string) {
       // TODO: assert special keys cannot occur more than one time
       // TODO: render image based on og:title
       if (key === ":title")
-        tmpl.replace(/<title>.*<\/title>/, `<title>${value}</title>`);
+        tmpl = tmpl.replace(/<title>.*<\/title>/, `<title>${value}</title>`);
       else if (key === ":backlink")
         tmpl = tmpl.replace(
           /<\/head>/,
