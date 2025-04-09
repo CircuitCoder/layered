@@ -57,6 +57,8 @@ emulator-5554 device
 
 当然使用类似 Magisk 的 su-based 方案也可以，或者下面进行挂载的脚本加上 setuid。
 
+题外话：赞美 LineageOS，自带了 VIM
+
 ## 挂载
 
 主要参考了 [这个 Gist](https://gist.github.com/aldur/4a3f90a111b71662f056)。需要注意的是 Android 自己带的 mount 二进制不认识 NFS，上述 Gist 中给出的方案是使用 `busybox mount`。使用 termux 安装的 busybox 即可；termux 安装的 mount 二进制应该也可以，但是没有实测。
@@ -66,6 +68,7 @@ emulator-5554 device
 ```bash
 #!/data/data/com.termux/usr/bin/bash
 export PATH="/data/data/com.termux/usr/bin:$PATH"
+setenforce Permissive
 
 mkdir -p /tmp/mnt/nfs # Ensure /tmp is tmpfs
 busybox mount -o ro,nolock,local_lock=all 1.2.3.4:/path/to/export /tmp/mnt/nfs
@@ -75,9 +78,10 @@ mkdir -p /storage/emulated/0/nfs
 busybox mount --rbind /tmp/mnt/nfs /storage/emulated/0/nfs
 ```
 
-上述例子中给的 Readonly mount，实测 Read-write 也正常，App 可以写入。不过 `nolock` 不能去掉，原因有待研究。脚本放在 `/data/media/0` 下可以 `chmod +x`。
+上述例子中给的 Readonly mount，实测 Read-write 也正常<sup>[5]</sup>，App 可以写入。不过 `nolock` 不能去掉，原因有待研究。脚本放在 `/data/media/0` 下可以 `chmod +x`。
 
 - [1] [Android Emulated Storage 结构浅析 - LibXZR 的小本本](https://blog.xzr.moe/archives/191/)
 - [2] [Instructions for connecting Termux's android-tools adb to the current device via Wireless debugging and fixing phantom process killing](https://gist.github.com/kairusds/1d4e32d3cf0d6ca44dc126c1a383a48d)
 - [3] [AOSP `adbd` 相关代码](https://android.googlesource.com/platform//packages/modules/adb/+/1cf2f017d312f73b3dc53bda85ef2610e35a80e9/daemon/main.cpp#87)
 - [4] [LineageOS 设置 Build variant 的位置](https://github.com/LineageOS/android_vendor_lineage/blob/fac22bf2792973a7bb85b37744ae4cb851174e24/build/envsetup.sh#L53)
+- [5] 我 `rm -rf` 了一个 NFS 挂载点...要不是花了两天恢复数据，这篇灵车文章两天前就写出来了。
