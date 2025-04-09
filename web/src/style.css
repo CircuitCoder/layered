@@ -749,9 +749,12 @@ pre:has(code) {
 }
 
 code:not(pre code) {
-  padding: 0 5px;
+  padding: 2px 5px;
   border-radius: 5px;
   background-color: color-mix(in srgb, var(--color-fg) 5%, var(--color-bg) 95%);
+  @media (prefers-color-scheme: dark) {
+    background-color: color-mix(in srgb, var(--color-fg) 10%, var(--color-bg) 90%);
+  }
 }
 
 a:has(> code) {
