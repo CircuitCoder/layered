@@ -827,8 +827,8 @@ class Post implements RenderedEntity {
 
     const contentWrapper = (
       <div class="post-content-wrapper">
-        {banner}
         {metadata}
+        {banner}
         {content}
         <div class="post-comments">{renderGiscus(post.metadata.title)}</div>
       </div>
