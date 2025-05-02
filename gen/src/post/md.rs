@@ -19,6 +19,7 @@ pub struct PartialMetadata {
     pub force_publish_time: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub hidden: bool,
+    pub wip: bool,
 }
 
 fn highlight_code_html(
@@ -200,6 +201,7 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
         force_publish_time: None,
         force_update_time: None,
         hidden: false,
+        wip: false,
     };
 
     for line in fm.trim().lines() {
@@ -221,6 +223,9 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
                 }
                 "hidden" => {
                     result.hidden = value.parse()?;
+                }
+                "wip" => {
+                    result.wip = value.parse()?;
                 }
                 _ => {
                     return Err(anyhow::anyhow!("Unsupported frontmatter key: {}", key));

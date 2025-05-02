@@ -568,14 +568,56 @@ nav {
   }
 }
 
-.post-content {
+.post-content, .post-banner {
   max-width: 600px;
   @media (max-width: 950px) {
     max-width: 450px;
   }
   margin: 0 auto;
+}
+
+.post-content {
   font-size: 16px;
   line-height: 28px;
+}
+
+.post-banner {
+  position: relative;
+  --banner-color: gray;
+  --banner-color-darker: color-mix(in srgb, var(--banner-color) 50%, transparent 50%);
+  --banner-color-lighter: color-mix(in srgb, var(--banner-color) 20%, transparent 80%);
+
+  @media (prefers-color-scheme: dark) {
+    &:not(.light) {
+      --banner-color-darker: var(--banner-color);
+      --banner-color-lighter: color-mix(in srgb, var(--banner-color) 40%, transparent 60%);
+    }
+  }
+
+  background: linear-gradient(
+    45deg,
+    var(--banner-color-darker) 25%,
+    var(--banner-color-lighter) 25%,
+    var(--banner-color-lighter) 50%,
+    var(--banner-color-darker) 50%,
+    var(--banner-color-darker) 75%,
+    var(--banner-color-lighter) 75%
+  );
+  background-size: 40px 40px;
+  padding: 5px 5px 5px 30px;
+  margin-bottom: 10px;
+}
+
+.post-banner-inner {
+  background: color-mix(in srgb, var(--color-bg) 75%, transparent 25%);
+  padding: 10px 20px;
+  box-shadow: 0 2px 3px rgba(0,0,0,.3) inset;
+  font-size: 16px;
+  font-family: monospace;
+}
+
+.post-banner-amber {
+  --banner-color: #c39e50;
 }
 
 .post-metadata, .post-metadata-aux {

@@ -794,6 +794,26 @@ class Post implements RenderedEntity {
       );
     }
 
+    function genBanner(metadata: Metadata): Element[] {
+      const result = [];
+      if(metadata.hidden) {
+        result.push(
+          <div class="post-banner">
+            <div class="post-banner-inner">This post is hidden! But you can still share around the link if you'd like to.</div>
+          </div>
+        );
+      }
+
+      if(metadata.wip) {
+        result.push(
+          <div class="post-banner post-banner-amber">
+            <div class="post-banner-inner">This post / series is a WIP. I would be happy to get response from you!</div>
+          </div>
+        );
+      }
+      return result;
+    }
+
     const metadata = genMetadata("post-metadata", []);
 
     const [auxTitle] = renderTitle(
@@ -803,9 +823,11 @@ class Post implements RenderedEntity {
     );
 
     const auxMetadata = genMetadata("post-metadata-aux", [auxTitle]);
+    const banner = genBanner(post.metadata);
 
     const contentWrapper = (
       <div class="post-content-wrapper">
+        {banner}
         {metadata}
         {content}
         <div class="post-comments">{renderGiscus(post.metadata.title)}</div>
