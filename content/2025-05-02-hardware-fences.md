@@ -47,11 +47,11 @@ Acquire / Release semantics 的定义比较简单，在大多数 ISA / 编译器
   - (2.i) 如果下级器件都可以保证产生一个回应，能够有效刻画这个请求的在系统全局的生效情况（e.g. 收到回应的时候保证已经生效了），那么可以由 Fence 同步下级**完成请求**的顺序。Fence 不发往下一级。
   - (2.ii) 由下级器件协助执行 Fence。
 
-导致实现会这么复杂，是因为存在一些常见的坑，这些坑互相都有联系，可以从最大的一个坑说起：
+导致实现会这么复杂，是因为存在一些常见的坑，总体而言有两个：Multi-copy atomicity 和提交保序。
 
 ### NUMA / LLC Slices
 
-考虑一个 NUMA 结构，LLC 有多个 Slice，不同的 L2 到不同的 Slice 的延迟不同。这个时候，即使总线保证每个器件按顺序处理请求<sup>[5]</sup>，也无法只通过发送顺序进行同步，因为这个请求真正到达对应 Slice 的时间可能不同。使用 AMBA 的术语，这一系统中的访存缺乏 Multi-copy atomicity. 
+考虑一个 NUMA 结构，LLC 有多个 Slice，不同的 L2 到不同的 Slice 的延迟不同。这个时候，即使总线保证每个器件按顺序处理请求<sup>[5]</sup>，也无法只通过发送顺序进行同步，因为这个请求真正到达对应 Slice 的时间可能不同。使用 AMBA 的术语，这一系统中的访存缺乏 Multi-copy atomicity: 不同的写可能会以不同顺序被不同核心观测到。
 
 考虑如下例子：
 
@@ -67,21 +67,25 @@ ST [lock] <- 1     LD R <- [x]
 
 如果 `lock` 的 Home line 距离 Th 0 更近，[x] 距离 Th 1 更近，那么如果只保证 L2 发往各个 LLC Slice 的顺序和 Program order 一致，也可能会发生 `R = 0, L = 1` 的结果。加个 `if` 也不行（分支预测 Yes！）。注意到，这里由于缓存是一个层级结构，LLC 有多个 Slice 导致了 L2 本身无法保证请求按顺序生效，因此要不然 L2 本身需要 Fence-aware，要不然上级结构需要根据 L2 的回应进行同步。
 
-在这一情况下，反正需要在某一级 Block 了，最简单的方法是所有级别都不 Fence aware，直接在 LSU 上一把大锁：Fence 等待先前的所有请求完成之后，再开始之后的请求。
+关于 Multi-copy atomicity 的实现和影响将也会有后续文章讨论。无论如何，在总线缺乏 MCA 的情况下，肯定需要在某一级 Block 请求了，最简单的方法是所有级别都不 Fence aware，直接在 LSU 上一把大锁：Fence 等待先前的所有请求完成之后，再开始之后的请求。
 
-这个做法会有一点额外的问题...
+然而检测访存完成也需要小心处理。等待请求完成需要依赖“完成”是准确有效的。Load 的完成是自然的，因为 Load 有一个返回值，当这个值回到 LSU 自然整个访存子系统都完成了。<small>什么？Load value prediction？唉搞微架构的，下次聊</small>
 
-### Write response
+对于写入，常见架构设计上是一个 Fire-and-forget 的设计，提交到 Store buffer 内就是胜利，认为就全局生效了，实际上并没有。如果外面的缓存不支持 MCA，那么需要有一个位置跟踪访存请求的完成情况（例如 MSHR），等待总线上访存的完成消息，并且这个完成消息得是可靠的<sup>[6]</sup>。
 
-等待请求完成需要依赖“完成”是准确有效的。Load 的完成是自然的，因为 Load 有一个返回值，当这个值回到 LSU 自然整个访存子系统都完成了。<small>什么？Load value prediction？唉搞微架构的，下次聊</small>
+### Request reorder
 
-对于写入，常见架构设计上是一个 Fire-and-forget 的设计，提交到 Store buffer 内就是胜利，认为就全局生效了，实际上并没有。然而很多时候这就够用了，如果 Store buffer 及其再下级的结构可以保持生效顺序，由于唯一一个需要保持的 $W \to *$ 序是 $W \to W$ 序，那 Store buffer 自身保序即可完成。
+那么如果总线和 L1 外面的缓存层级保证 MCA 呢？所幸 RV (Tilelink) 和 ARMv8 (AMBA) 都保证 MCA。然而即使有 MCA，也需要考虑可能把请求交换顺序的地方，保证了原子性也可以把整个两大块儿副作用完全交换顺序，例如 Tilelink。
 
-麻烦的是，这件事情也不一定成立...
+在总线以内，如果 Store buffer 到 L1 这段结构可以保持生效顺序，由于唯一一个需要保持的 $W \to *$ 序是 $W \to W$ 序，这部分请求会全部经过 Store buffer，那么这段结构至少也许至少不需要做额外处理。麻烦的是，有两个经典的设计会打乱这两个结构中的请求处理顺序：Write buffer coalescing 和 MSHR out-of-order issue。
+
+因此，即使总线具有 MCA，LSU 还是需要分别阻止总线上可能发生的请求交换顺序的情况。
+- 如果总线或者 L2 及以下的结构可以交换请求顺序，那么还是得在 L1 MSHR 这里跟踪一下请求的完成情况，这也许就是最好的做法
+- 如果总线是保序的，那么 LSU 还是得处理一下 Store buffer 和 L1 的顺序问题。当然，LSU 自己的请求提交顺序也要保证。下面具体讨论一下上述的两个经典设计：
 
 ### Write buffer coalescing
 
-因为 $W \to R$ 序不被保证，所以按顺序处理的 (Committed) write buffer 是无须清空的。但是如果 Write buffer 可能合并请求的话，那就可能导致 $W \to W$ 序被打破，此时 Write buffer 需要清空，或者至少等到不存在可能合并的行之后再 enqueue。
+因为 $W \to R$ 序不被保证，所以按顺序处理的 (Committed) write buffer 是无须清空的。但是如果 Write buffer 可能合并请求的话，那就可能导致 $W \to W$ 序被打破，此时进行 Release fence 时 Write buffer 需要清空，或者至少等到不存在可能合并的行之后再 enqueue。
 
 在 MICRO 2024 现场看到了一个非常有趣的论文，通过修改 Coherence protocol 解决了这个 $W \to W$ 保序的问题，有兴趣的同学可以阅读。<sup>[4]</sup>
 
@@ -102,7 +106,7 @@ ST [lock] <- 1     LD R <- [x]
 如果只清空了 Write buffer, 那么最极端的情况下可能发生的事情是，Th 0 的 L1DC 中 `x, lock` 都 Miss，进入 MSHR，先发送 `lock` 的 Probe, 完成，Replay 也完成，之后被 Th 1 一侧 Probe 回去，完成写回，在这段时间中 `x` 的 Probe 一直没有发生，因此随后 Th 1 中的 `x` 无论是 Hit 还是从 LLC Refill，都可以有 $R = 0, L = 1$。
 
 因此，在 MSHR 可能被乱序 Sequence 时，LSU & L1DC 通常需要做两件事情：
-1. MSHR 在总线给出回应时再释放，总线上有有效的回应消息 <sup>[6]</sup>。由于一般 L1 设计都是 Write-allocate 的，MSHR 需要等待 Refill 结果，所以自然需要等待回应再释放。
+1. MSHR 在总线给出回应时再释放。由于一般 L1 设计都是 Write-allocate 的，MSHR 需要等待 Refill 结果，所以这里会更类似读取的回应。
 2. $W \to *$ Fence 等待 MSHR 清空。
 
 Alternatively, Write buffer 当 Miss 的时候等待 Refill 完成再释放，相当于 Store buffer 做 Replay，那等待 Store buffer 清空就好了。这一设计在 TSO 上更常见一点。
@@ -114,6 +118,12 @@ Alternatively, Write buffer 当 Miss 的时候等待 Refill 完成再释放，�
 对于 Fully-coherent cache，这个问题不大。在某一级缓存终止代表这一级缓存持有足够强的权限，这一请求的全局可见性及其相关的序会由一致性协议保证——虽然这里也有一些坑，一致性协议本身必须有足够强的序。<sup>[7]</sup>
 
 对于不 Coherent 的缓存，例如 GPU，通常需要这个操作一直穿透到有一致性的地方，比如 GPU 的所有 Store 都需要一直写到 L2。
+
+## “读取”序与 Coherence
+
+最后简单讨论一下 Rel-Acq 对之间读取关系的序是怎么建立的。注意到，由于 Acq Ld 读取到了 Rel St 的值，因此 Acq Ld 的生效时间一定不早于 Rel St 的生效时间，在 Rel-Acq 对前后扩展其他内存操作时根据生效即可扩展出其他内存操作之间生效的先后关系。
+
+如果再靠近一些硬件实现，并且放松一些，Acq Rl 的**结束**一定晚于 Rel St **开始**。因此在最暴力的实现中，直接等待前序指令完全结束，再开始执行后续指令是正确的。
 
 ---
 
@@ -137,7 +147,7 @@ C++ 执行的单位是表达式，因此 Program order 这里其实指 "Sequence
 
 [5] 比如 AXI。In contrast, Tilelink 不保证 (SiFive Tilelink Spec 1.9.3, 6.5 P45)
 
-[6] 还是 Tilelink, SiFive Tilelink Spec 1.9.3, 6.5 P45 要求回应必须有效反应请求的生效，并且如果已经给出一个请求回应，后续收到的请求生效一定在前面已给出回应的请求之后。
+[6] 例如 SiFive Tilelink Spec 1.9.3, 6.5 P45 要求回应必须有效反应请求的生效情况，并且如果已经给出一个请求回应，后续收到的请求生效一定在前面已给出回应的请求之后。
 
 [7] 这里“足够强”指的是内存一致性协议必须有效保证各种序，尤其是 Coherence order 是成立的，例如 Tilelink 中需要一个 E channel 发送 GrantAck，以避免总线上消息换序导致 Total coherence order 的丢失。如下是一个例子，在没有 GrantAck 时，两个 Master 都想要写权限，所有消息针对的是同一个 Block。
 
@@ -156,4 +166,9 @@ Master A            Slave              Master B
 
 最后由 Master B 收到的 Grant 要不然完全不 Make sense，要不然就是两个 Master 都认为自己有写权限，但 Slave 觉得 B 没有。
 
+另一个可以考虑的假设情况是 Coherence master 不等待 ProbeAck 就下发 Grant，这个时候破坏的是 MCA。关于这点的简述见<sup>[9]</sup>。
+
 [8] Daniel Lustig, Sameer Sahasrabuddhe, and Olivier Giroux. 2019. A Formal Analysis of the NVIDIA PTX Memory Consistency Model. In Proceedings of the Twenty-Fourth International Conference on Architectural Support for Programming Languages and Operating Systems (ASPLOS '19). Association for Computing Machinery, New York, NY, USA, 257–270. [https://doi.org/10.1145/3297858.3304043](https://doi.org/10.1145/3297858.3304043)
+
+
+[9] Christopher Pulte, Shaked Flur, Will Deacon, Jon French, Susmit Sarkar, and Peter Sewell. 2017. Simplifying ARM concurrency: multicopy-atomic axiomatic and operational models for ARMv8. Proc. ACM Program. Lang. 2, POPL, Article 19 (January 2018), 29 pages. [https://doi.org/10.1145/3158107](https://doi.org/10.1145/3158107)
