@@ -526,7 +526,7 @@ nav {
         )
       );
 
-    filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 10));
+    /* filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 10)); */
     opacity: calc(1 - var(--scroll, 0) * (var(--var-scale) - 0.5) / 200);
   }
 }
