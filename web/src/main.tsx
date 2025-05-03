@@ -1036,7 +1036,14 @@ class Post implements RenderedEntity {
       const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
 
       const freeKeyframe = {
-        transform: `translate(${offsetX}px, ${offsetY}px) scale(calc(${scale} * var(--size) / var(--em))) scaleX(${Math.abs(offsetX) / 250}) scaleY(${Math.abs(offsetY) / 250})`,
+        transform: `
+          translate(${offsetX}px, ${offsetY}px)
+          scale(calc(${scale} * var(--size) / var(--em)))
+          translate(calc(0.5px *  var(--em)), calc(-0.5px *  var(--em)))
+          scaleX(${Math.abs(offsetX) / (entry ? 250 : 25)})
+          scaleY(${Math.abs(offsetY) / (entry ? 50 : 25)})
+          translate(calc(-0.5px *  var(--em)), calc(0.5px *  var(--em)))
+        `, // FIXME: figure out how to correct viewBox transform orogin
         opacity: 0,
         // filter: "blur(calc(0.2px * var(--em)))",
       };
