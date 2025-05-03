@@ -266,8 +266,12 @@ async function transitionRender(
   }
   else if (state.ty === "Tag") {
     const tag = state.tag;
+    title = `标签：${tag} | 分层 - Layered`;
+    backlink = CONFIG.BASE + "/tag/" + tag;
+    const filtered = data.filter(e => !e.metadata.hidden && e.metadata.tags.includes(tag));
+    desc = `共 ${filtered.length} 篇文章`;
     rendered = new List(
-      data.filter(e => !e.metadata.hidden && e.metadata.tags.includes(tag)),
+      filtered,
       register,
       () => <div class="tag-header">
         {cloneNode(Icons.Tag)}
@@ -827,7 +831,7 @@ class Post implements RenderedEntity {
       if(metadata.wip) {
         result.push(
           <div class="post-banner post-banner-amber">
-            <div class="post-banner-inner">This post / series is a WIP. I would be happy to get response from you!</div>
+            <div class="post-banner-inner">This post / series is a WIP. Please send feedbacks in comments!</div>
           </div>
         );
       }
@@ -1204,3 +1208,13 @@ class About implements RenderedEntity {
 }
 
 if (!SSR) document.addEventListener("DOMContentLoaded", () => bootstrap());
+
+// Helper functions for SSR
+export async function listTags(): Promise<string[]> {
+  const data = await getData();
+  const tags = new Set<string>();
+  for (const post of data)
+    for (const tag of post.metadata.tags)
+      tags.add(tag);
+  return Array.from(tags);
+}

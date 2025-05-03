@@ -7,8 +7,9 @@ type Bootstrap = (
 ) => Promise<void>;
 
 // @ts-ignore
-const { bootstrap, reset } = (await import("./dist/server/main.js")) as {
+const { bootstrap, listTags, reset } = (await import("./dist/server/main.js")) as {
   bootstrap: Bootstrap;
+  listTags: () => Promise<string[]>;
   reset: () => void;
 };
 
@@ -59,6 +60,7 @@ async function work() {
   // Mkdirs
   await fs.mkdir("./dist/render", { recursive: true });
   await fs.mkdir("./dist/render/post", { recursive: true });
+  await fs.mkdir("./dist/render/tag", { recursive: true });
 
   // Prerender root
   await renderPath("/");
@@ -70,6 +72,11 @@ async function work() {
     const [_, slug] = filename.match(/^\d{4}-\d{2}-\d{2}-(.*)$/)!;
     await renderPath(`/post/${slug}`);
   }
+
+  // Render all tags
+  const tags = await listTags();
+  for (const tag of tags)
+    await renderPath(`/tag/${tag}`);
 }
 
 work().catch(console.error);
