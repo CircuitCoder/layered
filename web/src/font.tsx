@@ -107,7 +107,6 @@ function nextLine(grps: GroupResp[], maxWidth: number): WidthLine {
   let lineOpticalWidthHist: number[] = [];
   let lineWidth = 0;
   let lastBreakAfter: null | number = null;
-  console.log(grps);
 
   let idx = 0;
   for (const grp of grps) {
