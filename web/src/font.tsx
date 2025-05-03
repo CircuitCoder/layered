@@ -103,23 +103,30 @@ export function materialize(
 }
 
 function nextLine(grps: GroupResp[], maxWidth: number): WidthLine {
+  let lineWidthHist = [];
+  let lineOpticalWidthHist: number[] = [];
   let lineWidth = 0;
-  let lineOpticalWidth = 0;
   let lastBreakAfter: null | number = null;
+  console.log(grps);
 
   let idx = 0;
   for (const grp of grps) {
     if (lineWidth + grp.hadv > maxWidth && lastBreakAfter !== null) break;
     lineWidth += grp.hadv;
-    if (!grp.text.match(/^ +$/)) lineOpticalWidth = lineWidth;
+    lineWidthHist.push(lineWidth);
+    if (!grp.text.match(/^ +$/)) {
+      lineOpticalWidthHist.push(lineWidth);
+    } else {
+      lineOpticalWidthHist.push(lineOpticalWidthHist[lineOpticalWidthHist.length - 1]);
+    }
     if (grp.breakAfter) lastBreakAfter = idx;
     ++idx;
   }
   if (lastBreakAfter === null) throw new Error("Cannot break line");
 
   return {
-    optWidth: lineOpticalWidth,
-    fullWidth: lineWidth,
+    optWidth: lineOpticalWidthHist[lastBreakAfter],
+    fullWidth: lineWidthHist[lastBreakAfter],
     line: grps.slice(0, lastBreakAfter + 1),
   };
 }
