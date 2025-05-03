@@ -327,10 +327,10 @@ async function transitionRender(
 }
 
 async function transitionRehydrate(slowEntry: boolean) {
-  if (state.ty === "Home") {
+  if (state.ty === "Home" || state.ty === "Tag") {
     const l = new List();
     rendered = l;
-    l.entry(slowEntry);
+    l.entry(slowEntry && state.ty === "Home");
   } else if (state.ty === "Post") {
     const p = new Post();
     rendered = p;
