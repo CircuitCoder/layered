@@ -20,6 +20,7 @@ pub struct PartialMetadata {
     pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
     pub hidden: bool,
     pub wip: bool,
+    pub legacy: bool,
 }
 
 fn highlight_code_html(
@@ -202,6 +203,7 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
         force_update_time: None,
         hidden: false,
         wip: false,
+        legacy: false,
     };
 
     for line in fm.trim().lines() {
@@ -226,6 +228,9 @@ fn parse_frontmatter(fm: &str) -> anyhow::Result<PartialMetadata> {
                 }
                 "wip" => {
                     result.wip = value.parse()?;
+                }
+                "legacy" => {
+                    result.legacy = value.parse()?;
                 }
                 _ => {
                     return Err(anyhow::anyhow!("Unsupported frontmatter key: {}", key));

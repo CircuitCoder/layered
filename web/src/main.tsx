@@ -831,6 +831,15 @@ class Post implements RenderedEntity {
           </div>
         );
       }
+
+      if(metadata.legacy) {
+        const link = `https://legacy.meow.c-3.moe/${metadata.id}`;
+        result.push(
+          <div class="post-banner post-banner-green">
+            <div class="post-banner-inner">This is a legacy post migrated from my old blog C3Meow. <a href={link}>Check out the original version!</a></div>
+          </div>
+        );
+      }
       return result;
     }
 

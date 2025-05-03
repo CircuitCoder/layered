@@ -663,6 +663,10 @@ nav {
   --banner-color: #c39e50;
 }
 
+.post-banner-green {
+  --banner-color: #549518;
+}
+
 .post-metadata, .post-metadata-aux {
   & .post-metadata-line {
     display: flex;

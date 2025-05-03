@@ -33,6 +33,7 @@ pub struct Metadata {
     pub title_outline: TitleResp,
     pub hidden: bool,
     pub wip: bool,
+    pub legacy: bool,
 }
 
 // Fetch history based on git repo
@@ -134,6 +135,7 @@ fn serialize_single(
             tags: pre.metadata.tags,
             hidden: pre.metadata.hidden,
             wip: pre.metadata.wip,
+            legacy: pre.metadata.legacy,
             publish_time,
             update_time,
             title_outline,
