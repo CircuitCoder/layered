@@ -1,4 +1,4 @@
-import { apply as applyStatic, arrow } from "./static";
+import { apply as applyStatic, arrow, Bowl, NF } from "./static";
 
 import { Post as PostData } from "./typings/Post";
 import { getData } from "./data";
@@ -253,9 +253,10 @@ async function transitionRender(
   // Render list
   // TODO: hide list during debounce, match with transition duration
   if (state.ty === "Home") rendered = new List(data.filter(e => !e.metadata.hidden), register);
-  else if (state.ty === "Search") rendered = new Search(register);
-  // Render post
-  else if (state.ty === "Post") {
+  else if (state.ty === "Search") {
+    title = "搜索 | 分层 - Layered";
+    rendered = new Search(register);
+  } else if (state.ty === "Post") {
     const slug = state.slug; // workaround typechecker
     const post = data.find((p) => p.metadata.id === slug)!;
     title = post.metadata.title + " | 分层 - Layered";
@@ -263,8 +264,7 @@ async function transitionRender(
     rendered = new Post(post, register);
     desc =
       post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
-  }
-  else if (state.ty === "Tag") {
+  } else if (state.ty === "Tag") {
     const tag = state.tag;
     title = `标签：${tag} | 分层 - Layered`;
     backlink = CONFIG.BASE + "/tag/" + tag;
@@ -279,10 +279,10 @@ async function transitionRender(
       </div>,
       ["tag-list"],
     );
-  }
-
-  // Init about components
-  else if (state.ty === "About") {
+  } else if (state.ty === "NotFound") {
+    title = "404 | 分层 - Layered";
+    rendered = new NotFound();
+  } else if (state.ty === "About") {
     rendered = new About(false, register);
     title = "关于 | 分层 - Layered";
     backlink = CONFIG.BASE + "/about";
@@ -308,6 +308,7 @@ async function transitionRender(
       (rendered as Post).entry(renderedTitle);
     } else if (state.ty === "About") (rendered as About).entry();
     else if (state.ty === "Tag") (rendered as List).entry(false);
+    else if (state.ty === "NotFound") (rendered as NotFound).entry();
   }
 
   if (!SSR) {
@@ -1203,6 +1204,38 @@ class About implements RenderedEntity {
       ...arrowAnimations.map((e) => e.finished),
       contentAnimation.finished,
     ]);
+    this.element.remove();
+  }
+}
+
+class NotFound implements RenderedEntity {
+  element: HTMLElement;
+  constructor() {
+    this.element = <div class="not-found">
+      {cloneNode(Bowl)}
+      {cloneNode(NF)}
+      <div class="not-found-hint">
+        404 Not Found
+      </div>
+    </div>
+  }
+  async entry() {
+    await this.element.animate([{
+      opacity: 0,
+    }, {}], {
+      duration: 500,
+      easing: "ease-out",
+      fill: "both",
+    });
+  }
+  async exit() {
+    await this.element.animate([{}, {
+      opacity: 0,
+    }], {
+      duration: 500,
+      easing: "ease-in",
+      fill: "both",
+    }).finished;
     this.element.remove();
   }
 }
