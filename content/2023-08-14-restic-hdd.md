@@ -1,6 +1,7 @@
 ---
 title: restic store on HDD
 tags: 踩坑
+legacy: true
 force_publish_time: 2023-08-14T14:34:46.656Z
 force_update_time: 2023-08-14T14:34:46.656Z
 ---

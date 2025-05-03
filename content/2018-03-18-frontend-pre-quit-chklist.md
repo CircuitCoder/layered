@@ -1,6 +1,7 @@
 ---
 title: 前端踩坑 Checklist
 tags: 技术
+legacy: true
 force_publish_time: 2018-03-17T17:48:48.834Z
 force_update_time: 2018-03-17T17:52:38.960Z
 ---

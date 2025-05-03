@@ -1,6 +1,7 @@
 ---
 title: Notes about HEq in Lean4 (Part 1?)
 tags: 摸鱼
+legacy: true
 force_publish_time: 2025-01-07T04:44:22.397Z
 force_update_time: 2025-01-15T04:56:26.371Z
 ---

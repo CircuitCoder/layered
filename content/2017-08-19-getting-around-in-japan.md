@@ -1,6 +1,7 @@
 ---
 title: 日本的交通
 tags: 扯淡
+legacy: true
 force_publish_time: 2017-08-19T15:27:32.236Z
 force_update_time: 2017-08-19T16:21:49.888Z
 ---

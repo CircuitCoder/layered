@@ -1,6 +1,7 @@
 ---
 title: Open Graph on C3Meow
 tags: Meta
+legacy: true
 force_publish_time: 2019-03-15T09:31:46.411Z
 force_update_time: 2019-03-15T13:38:13.136Z
 ---

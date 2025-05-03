@@ -1,6 +1,7 @@
 ---
 title: 读完了 Narcissu
 tags: 吃书
+legacy: true
 force_publish_time: 2018-06-21T11:34:21.327Z
 force_update_time: 2018-06-21T11:38:39.122Z
 ---

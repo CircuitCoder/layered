@@ -1,6 +1,7 @@
 ---
 title: 没有信号
 tags: Meta
+legacy: true
 force_publish_time: 2017-02-19T09:21:13.357Z
 force_update_time: 2017-02-19T09:21:13.357Z
 ---

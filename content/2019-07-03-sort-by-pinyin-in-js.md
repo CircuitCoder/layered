@@ -1,6 +1,7 @@
 ---
 title: 拼音排序 \w JavaScript
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-07-03T00:07:58.484Z
 force_update_time: 2019-07-30T10:23:12.884Z
 ---

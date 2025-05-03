@@ -1,6 +1,7 @@
 ---
 title: Nginx Listen IP
 tags: 技术
+legacy: true
 force_publish_time: 2018-05-17T16:05:53.163Z
 force_update_time: 2018-05-17T16:10:42.187Z
 ---

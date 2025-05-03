@@ -1,6 +1,7 @@
 ---
 title: 使用 RapidJSON
 tags: Meta
+legacy: true
 force_publish_time: 2016-11-29T13:38:24.333Z
 force_update_time: 2016-12-15T13:09:24.801Z
 ---

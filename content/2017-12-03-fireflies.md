@@ -1,6 +1,7 @@
 ---
 title: 萤火
 tags: 扯淡
+legacy: true
 force_publish_time: 2017-12-02T18:03:34.266Z
 force_update_time: 2017-12-02T18:04:06.758Z
 ---

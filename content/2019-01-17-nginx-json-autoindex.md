@@ -1,6 +1,7 @@
 ---
 title: Nginx 输出 json 格式目录
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-01-16T16:12:02.576Z
 force_update_time: 2019-01-16T16:13:32.907Z
 ---

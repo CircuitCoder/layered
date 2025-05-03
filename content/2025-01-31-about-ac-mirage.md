@@ -1,6 +1,7 @@
 ---
 title: 关于《刺客信条-幻景》
 tags: 游戏屋
+legacy: true
 force_publish_time: 2025-01-31T02:00:27.313Z
 force_update_time: 2025-01-31T03:12:48.614Z
 ---

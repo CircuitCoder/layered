@@ -1,6 +1,7 @@
 ---
 title: 隐藏 navigator.webdriver
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-01-26T16:28:33.956Z
 force_update_time: 2019-01-26T16:30:18.362Z
 ---

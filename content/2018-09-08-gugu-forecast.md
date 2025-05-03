@@ -1,6 +1,7 @@
 ---
 title: 近期开发计划
 tags: Meta
+legacy: true
 force_publish_time: 2018-09-08T08:59:23.594Z
 force_update_time: 2018-09-08T08:59:35.106Z
 ---

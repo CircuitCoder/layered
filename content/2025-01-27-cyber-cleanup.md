@@ -1,6 +1,7 @@
 ---
 title: 赛博春节扫除
 tags: 灵车
+legacy: true
 force_publish_time: 2025-01-27T15:59:28.420Z
 force_update_time: 2025-01-27T15:59:28.420Z
 ---

@@ -1,6 +1,7 @@
 ---
 title: 掐灭数字人生
 tags: 认真学习
+legacy: true
 force_publish_time: 2019-03-28T18:28:58.287Z
 force_update_time: 2019-07-15T08:31:53.473Z
 ---

@@ -1,6 +1,7 @@
 ---
 title: 喵++
 tags: 开发
+legacy: true
 force_publish_time: 2019-05-21T18:38:07.601Z
 force_update_time: 2019-08-21T07:19:29.413Z
 ---

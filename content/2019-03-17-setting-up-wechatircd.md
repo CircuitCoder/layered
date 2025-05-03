@@ -1,6 +1,7 @@
 ---
 title: 设置 wechatircd
 tags: 搭积木
+legacy: true
 force_publish_time: 2019-03-17T09:39:46.063Z
 force_update_time: 2019-05-18T08:53:58.702Z
 ---

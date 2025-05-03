@@ -1,6 +1,7 @@
 ---
 title: 捏造 tuoj-buildfs
 tags: 技术
+legacy: true
 force_publish_time: 2018-04-26T18:20:30.284Z
 force_update_time: 2018-04-26T18:20:49.205Z
 ---

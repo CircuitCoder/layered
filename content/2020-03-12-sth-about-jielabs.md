@@ -1,6 +1,7 @@
 ---
 title: Sth. about JieLabs
 tags: 开发
+legacy: true
 force_publish_time: 2020-03-12T03:49:07.946Z
 force_update_time: 2020-03-16T21:04:17.885Z
 ---

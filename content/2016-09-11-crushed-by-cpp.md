@@ -1,6 +1,7 @@
 ---
 title: 感受到了力量
 tags: Meta, 扯淡
+legacy: true
 force_publish_time: 2016-09-11T12:48:12.720Z
 force_update_time: 2016-12-26T11:48:38.500Z
 ---

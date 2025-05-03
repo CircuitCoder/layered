@@ -1,6 +1,7 @@
 ---
 title: 搭建/迁移 Minio 服务器
 tags: 技术
+legacy: true
 force_publish_time: 2018-10-07T09:52:28.759Z
 force_update_time: 2018-10-07T10:07:11.811Z
 ---

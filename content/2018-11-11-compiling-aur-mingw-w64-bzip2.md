@@ -1,6 +1,7 @@
 ---
 title: 编译 aur/mingw-w64-bzip2
 tags: 技术, 踩坑
+legacy: true
 force_publish_time: 2018-11-10T16:52:33.500Z
 force_update_time: 2018-11-10T16:54:10.204Z
 ---

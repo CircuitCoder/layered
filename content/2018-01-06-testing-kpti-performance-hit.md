@@ -1,6 +1,7 @@
 ---
 title: 测试 KPTI 对 IO 的性能影响
 tags: 技术
+legacy: true
 force_publish_time: 2018-01-06T14:17:32.945Z
 force_update_time: 2018-01-20T07:59:28.847Z
 ---

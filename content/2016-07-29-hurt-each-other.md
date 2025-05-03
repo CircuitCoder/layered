@@ -1,6 +1,7 @@
 ---
 title: 互相伤害
 tags: 蒋公的面子, 视频
+legacy: true
 force_publish_time: 2016-07-29T13:43:03.621Z
 force_update_time: 2017-03-19T05:35:44.770Z
 ---

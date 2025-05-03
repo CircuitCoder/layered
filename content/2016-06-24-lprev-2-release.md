@@ -1,6 +1,7 @@
 ---
 title: LPack Rev.2 发布
 tags: LPack, Minecraft
+legacy: true
 force_publish_time: 2016-06-24T11:32:42.090Z
 force_update_time: 2016-06-24T11:32:42.090Z
 ---

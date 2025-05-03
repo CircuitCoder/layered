@@ -1,6 +1,7 @@
 ---
 title: Chisel3 踩坑实录
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-12-01T15:01:20.119Z
 force_update_time: 2020-03-21T04:35:43.490Z
 ---

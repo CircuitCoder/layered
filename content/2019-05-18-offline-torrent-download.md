@@ -1,6 +1,7 @@
 ---
 title: 在线种种子
 tags: 搭积木, 约稿
+legacy: true
 force_publish_time: 2019-05-18T09:18:45.095Z
 force_update_time: 2019-05-18T10:30:41.305Z
 ---

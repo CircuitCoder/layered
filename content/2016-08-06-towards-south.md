@@ -1,6 +1,7 @@
 ---
 title: 一路向南
 tags: 扯淡
+legacy: true
 force_publish_time: 2016-08-06T13:37:08.954Z
 force_update_time: 2016-10-16T09:43:55.314Z
 ---

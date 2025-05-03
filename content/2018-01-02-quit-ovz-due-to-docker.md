@@ -1,6 +1,7 @@
 ---
 title: 当你想在 OpenVZ 上装 Docker 时
 tags: 技术
+legacy: true
 force_publish_time: 2018-01-01T16:30:39.321Z
 force_update_time: 2018-01-01T16:30:58.266Z
 ---

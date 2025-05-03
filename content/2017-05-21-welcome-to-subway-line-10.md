@@ -1,6 +1,7 @@
 ---
 title: 在北京地铁 10 号线上
 tags: 扯淡
+legacy: true
 force_publish_time: 2017-05-21T13:52:48.488Z
 force_update_time: 2017-05-21T13:57:55.522Z
 ---

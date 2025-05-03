@@ -1,6 +1,7 @@
 ---
 title: 苟延残喘
 tags: 扯淡
+legacy: true
 force_publish_time: 2016-07-23T12:49:45.196Z
 force_update_time: 2017-03-19T05:35:27.917Z
 ---

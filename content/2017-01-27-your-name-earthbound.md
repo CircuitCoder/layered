@@ -1,6 +1,7 @@
 ---
 title: 关于君名外传
 tags: 君の名は。
+legacy: true
 force_publish_time: 2017-01-27T12:30:27.552Z
 force_update_time: 2017-01-28T14:41:57.573Z
 ---

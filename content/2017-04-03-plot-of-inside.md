@@ -1,6 +1,7 @@
 ---
 title: 关于 INSIDE 的剧情
 tags: 扯淡
+legacy: true
 force_publish_time: 2017-04-03T12:31:25.941Z
 force_update_time: 2017-04-04T11:38:44.654Z
 ---

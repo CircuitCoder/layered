@@ -1,6 +1,7 @@
 ---
 title: Blob -> Data URI
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-01-24T17:16:22.192Z
 force_update_time: 2019-01-24T17:16:22.192Z
 ---

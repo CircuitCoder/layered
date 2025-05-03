@@ -1,6 +1,7 @@
 ---
 title: 郑重声明
 tags: 郑重
+legacy: true
 force_publish_time: 2017-12-17T03:16:05.759Z
 force_update_time: 2018-03-16T19:20:37.469Z
 ---

@@ -1,6 +1,7 @@
 ---
 title: 在线听鸽，或者离线听鸽
 tags: 开发
+legacy: true
 force_publish_time: 2019-01-02T14:44:23.913Z
 force_update_time: 2019-06-30T13:04:12.870Z
 ---

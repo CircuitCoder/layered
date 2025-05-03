@@ -1,6 +1,7 @@
 ---
 title: 使用 DNSPod 与 ACME
 tags: 踩坑
+legacy: true
 force_publish_time: 2019-02-10T14:36:12.129Z
 force_update_time: 2019-03-15T08:26:24.148Z
 ---
