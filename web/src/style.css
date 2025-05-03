@@ -496,6 +496,7 @@ nav {
   height: var(--header-size);
   width: var(--header-size);
   transform: translateY(10px);
+  clip-path: inset(0 0 10px 0);
   fill: var(--color-fg-secondary);
 }
 .tag-header:after {
