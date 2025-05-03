@@ -171,10 +171,12 @@ function updateBannerClass(given?: State): string {
 
 function parsePath(path: String): State {
   const postMatch = path.match(/^\/post\/([^\/]+)$/);
+  const tagMatch = path.match(/^\/tag\/([^\/]+)$/);
   if (path === "/") return { ty: "Home" };
   else if (path === "/search") return { ty: "Search" };
   else if (path === "/about") return { ty: "About" };
-  else if (postMatch !== null) return { ty: "Post", slug: postMatch[1] };
+  else if (postMatch !== null) return { ty: "Post", slug: decodeURIComponent(postMatch[1]) };
+  else if (tagMatch !== null) return { ty: "Tag", tag: decodeURIComponent(tagMatch[1]) };
   else return { ty: "NotFound" };
 }
 
@@ -254,13 +256,25 @@ async function transitionRender(
   else if (state.ty === "Search") rendered = new Search(register);
   // Render post
   else if (state.ty === "Post") {
-    const slug = decodeURIComponent(state.slug); // decode, also workaround typechecker
+    const slug = state.slug; // workaround typechecker
     const post = data.find((p) => p.metadata.id === slug)!;
     title = post.metadata.title + " | 分层 - Layered";
     backlink = CONFIG.BASE + "/post/" + slug;
     rendered = new Post(post, register);
     desc =
       post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
+  }
+  else if (state.ty === "Tag") {
+    const tag = state.tag;
+    rendered = new List(
+      data.filter(e => !e.metadata.hidden && e.metadata.tags.includes(tag)),
+      register,
+      () => <div class="tag-header">
+        {cloneNode(Icons.Tag)}
+        <span class="tag-name">{tag}</span>
+      </div>,
+      ["tag-list"],
+    );
   }
 
   // Init about components
@@ -289,6 +303,7 @@ async function transitionRender(
       }
       (rendered as Post).entry(renderedTitle);
     } else if (state.ty === "About") (rendered as About).entry();
+    else if (state.ty === "Tag") (rendered as List).entry(false);
   }
 
   if (!SSR) {
@@ -501,6 +516,8 @@ class List implements RenderedEntity {
   constructor(
     posts?: PostData[],
     register?: (key: string, value: any) => void,
+    addon?: () => Element,
+    cls?: string[],
   ) {
     // TODO: actually use hash of list
     if (posts === undefined) {
@@ -529,7 +546,10 @@ class List implements RenderedEntity {
         <div class="entry-preview">{preview}</div>,
       ]);
     });
-    const list = <div class="list">{...entries}</div>;
+    const list = <div class={["list", ...(cls ?? [])]}>
+      {addon && addon()}
+      {...entries}
+    </div>;
     this.element = list;
   }
 

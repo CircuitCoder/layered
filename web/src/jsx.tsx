@@ -1,4 +1,4 @@
-type classDefSingle = string | { [key: string]: boolean };
+type classDefSingle = string | { [key: string]: boolean } | null | undefined;
 type classDef = classDefSingle | classDefSingle[];
 type styleDef = string | { [key: string]: any };
 
@@ -9,17 +9,17 @@ export type JSXData = {
   [other: string]: any;
 } | null;
 
-function evalClassDefSingle(def: classDefSingle): string {
-  if (typeof def === "string") return def;
+function evalClassDefSingle(def: classDefSingle): string[] {
+  if (typeof def === "string") return [def];
+  else if (def === null || def === undefined) return [];
   else
     return Object.keys(def)
-      .filter((key) => def[key])
-      .join(" ");
+      .filter((key) => def[key]);
 }
 
 function evalClassDef(def: classDef): string {
-  if (Array.isArray(def)) return def.map(evalClassDefSingle).join(" ");
-  else return evalClassDefSingle(def);
+  if (Array.isArray(def)) return def.flatMap(evalClassDefSingle).join(" ");
+  else return evalClassDefSingle(def).join(" ");
 }
 
 function evalStyleDef(def: styleDef): string {
