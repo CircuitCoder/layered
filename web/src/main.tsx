@@ -90,11 +90,14 @@ type TagData = {
 
 function tags(posts: PostData[]): TagData[] {
   const tags = new Map<string, TagData>();
-  for (const post of posts)
+  for (const post of posts) {
+    if(post.metadata.hidden) continue;
+
+    const time = Temporal.Instant.from(
+      post.metadata.update_time ?? post.metadata.publish_time,
+    );
+
     for (const tag of post.metadata.tags) {
-      const time = Temporal.Instant.from(
-        post.metadata.update_time ?? post.metadata.publish_time,
-      );
       const cur = tags.get(tag);
       if (!cur)
         tags.set(tag, {
@@ -104,9 +107,10 @@ function tags(posts: PostData[]): TagData[] {
         });
       else {
         cur.count += 1;
-        if (Temporal.Instant.compare(time, cur.latest) < 0) cur.latest = time;
+        if (Temporal.Instant.compare(time, cur.latest) > 0) cur.latest = time;
       }
     }
+  }
   return Array.from(tags.values());
 }
 
