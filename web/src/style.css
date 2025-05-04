@@ -874,6 +874,14 @@ h3 {
   margin-block-end: 1em;
 }
 
+ol, ul {
+  padding-left: 0px;
+
+  ol, ul {
+    padding-left: 30px;
+  }
+}
+
 /* About */
 .about {
   left: 0;
