@@ -77,8 +77,12 @@ fn main() -> anyhow::Result<()> {
     let watch_rx = if args.watch {
         log::info!("Enable watch mode");
         let (tx, rx) = std::sync::mpsc::channel();
-        let mut watcher = notify_debouncer_full::new_debouncer(std::time::Duration::from_millis(200),None, tx)?;
-        watcher.watch(&args.posts, notify_debouncer_full::notify::RecursiveMode::Recursive)?;
+        let mut watcher =
+            notify_debouncer_full::new_debouncer(std::time::Duration::from_millis(200), None, tx)?;
+        watcher.watch(
+            &args.posts,
+            notify_debouncer_full::notify::RecursiveMode::Recursive,
+        )?;
         Some((rx, watcher)) // Keep watcher alive
     } else {
         None
@@ -126,7 +130,9 @@ fn main() -> anyhow::Result<()> {
                 if let notify::EventKind::Access(_) = ev.event.kind {
                     continue;
                 }
-                if let notify::EventKind::Modify(notify::event::ModifyKind::Metadata(_)) = ev.event.kind {
+                if let notify::EventKind::Modify(notify::event::ModifyKind::Metadata(_)) =
+                    ev.event.kind
+                {
                     continue;
                 }
 
@@ -145,7 +151,9 @@ fn main() -> anyhow::Result<()> {
                 }
             }
 
-            if has_update { break; }
+            if has_update {
+                break;
+            }
         }
     }
 }

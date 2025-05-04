@@ -18,5 +18,5 @@ export async function getData(): Promise<Post[]> {
 
 // set posts for search engine
 cached.then((posts) => {
-  setPosts(posts.filter(e => !e.metadata.hidden));
+  setPosts(posts.filter((e) => !e.metadata.hidden));
 });

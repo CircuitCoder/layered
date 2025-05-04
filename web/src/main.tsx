@@ -46,8 +46,8 @@ type State =
       tag: string;
     }
   | {
-    ty: "Tags";
-  }
+      ty: "Tags";
+    }
   | {
       ty: "About";
     }
@@ -86,19 +86,22 @@ type TagData = {
   name: string;
   count: number;
   latest: Temporal.Instant;
-}
+};
 
 function tags(posts: PostData[]): TagData[] {
   const tags = new Map<string, TagData>();
   for (const post of posts)
     for (const tag of post.metadata.tags) {
-      const time = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
+      const time = Temporal.Instant.from(
+        post.metadata.update_time ?? post.metadata.publish_time,
+      );
       const cur = tags.get(tag);
-      if(!cur) tags.set(tag, {
-        name: tag,
-        count: 1,
-        latest: time,
-      });
+      if (!cur)
+        tags.set(tag, {
+          name: tag,
+          count: 1,
+          latest: time,
+        });
       else {
         cur.count += 1;
         if (Temporal.Instant.compare(time, cur.latest) < 0) cur.latest = time;
@@ -109,7 +112,7 @@ function tags(posts: PostData[]): TagData[] {
 
 export async function listTags(): Promise<string[]> {
   const data = await getData();
-  return tags(data).map(e => e.name);
+  return tags(data).map((e) => e.name);
 }
 
 function registerDOM(key: string, value: any) {
@@ -188,7 +191,8 @@ function scroll() {
 function updateBannerClass(given?: State): string {
   const used = given ?? state;
   const root = document.getElementById("root")!;
-  const bannerMode = used.ty === "About" || used.ty === "Tags" || (onTop && used.ty === "Home");
+  const bannerMode =
+    used.ty === "About" || used.ty === "Tags" || (onTop && used.ty === "Home");
   const targetClass = bannerMode ? "banner" : "header";
   if (root.classList.contains(targetClass)) return targetClass;
 
@@ -209,8 +213,10 @@ function parsePath(path: String): State {
   else if (path === "/search") return { ty: "Search" };
   else if (path === "/about") return { ty: "About" };
   else if (path === "/tags") return { ty: "Tags" };
-  else if (postMatch !== null) return { ty: "Post", slug: decodeURIComponent(postMatch[1]) };
-  else if (tagMatch !== null) return { ty: "Tag", tag: decodeURIComponent(tagMatch[1]) };
+  else if (postMatch !== null)
+    return { ty: "Post", slug: decodeURIComponent(postMatch[1]) };
+  else if (tagMatch !== null)
+    return { ty: "Tag", tag: decodeURIComponent(tagMatch[1]) };
   else return { ty: "NotFound" };
 }
 
@@ -230,8 +236,7 @@ async function reflection(
     !SSR && document.getElementById("root")!.hasAttribute("data-prerendered");
 
   const newState = parsePath(path);
-  if (!prerendered && !SSR && stateEqual(state, newState))
-    return;
+  if (!prerendered && !SSR && stateEqual(state, newState)) return;
 
   const oldState = state;
   state = newState;
@@ -296,7 +301,11 @@ async function transitionRender(
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
-  if (state.ty === "Home") rendered = new List(data.filter(e => !e.metadata.hidden), register);
+  if (state.ty === "Home")
+    rendered = new List(
+      data.filter((e) => !e.metadata.hidden),
+      register,
+    );
   else if (state.ty === "Search") {
     title = "搜索 | 分层 - Layered";
     rendered = new Search(register);
@@ -312,15 +321,19 @@ async function transitionRender(
     const tag = state.tag;
     title = `标签：${tag} | 分层 - Layered`;
     backlink = CONFIG.BASE + "/tag/" + tag;
-    const filtered = data.filter(e => !e.metadata.hidden && e.metadata.tags.includes(tag));
+    const filtered = data.filter(
+      (e) => !e.metadata.hidden && e.metadata.tags.includes(tag),
+    );
     desc = `共 ${filtered.length} 篇文章`;
     rendered = new List(
       filtered,
       register,
-      () => <div class="tag-header">
-        {cloneNode(Icons.Tag)}
-        <span class="tag-name">{tag}</span>
-      </div>,
+      () => (
+        <div class="tag-header">
+          {cloneNode(Icons.Tag)}
+          <span class="tag-name">{tag}</span>
+        </div>
+      ),
       ["tag-list"],
     );
   } else if (state.ty === "NotFound") {
@@ -606,10 +619,12 @@ class List implements RenderedEntity {
         <div class="entry-preview">{preview}</div>,
       ]);
     });
-    const list = <div class={["list", ...(cls ?? [])]}>
-      {addon && addon()}
-      {...entries}
-    </div>;
+    const list = (
+      <div class={["list", ...(cls ?? [])]}>
+        {addon && addon()}
+        {...entries}
+      </div>
+    );
     this.element = list;
   }
 
@@ -876,28 +891,36 @@ class Post implements RenderedEntity {
 
     function genBanner(metadata: Metadata): Element[] {
       const result = [];
-      if(metadata.hidden) {
+      if (metadata.hidden) {
         result.push(
           <div class="post-banner">
-            <div class="post-banner-inner">This post is hidden! But you can still share around the link if you'd like to.</div>
-          </div>
+            <div class="post-banner-inner">
+              This post is hidden! But you can still share around the link if
+              you'd like to.
+            </div>
+          </div>,
         );
       }
 
-      if(metadata.wip) {
+      if (metadata.wip) {
         result.push(
           <div class="post-banner post-banner-amber">
-            <div class="post-banner-inner">This post / series is a WIP. Please send feedbacks in comments!</div>
-          </div>
+            <div class="post-banner-inner">
+              This post / series is a WIP. Please send feedbacks in comments!
+            </div>
+          </div>,
         );
       }
 
-      if(metadata.legacy) {
+      if (metadata.legacy) {
         const link = `https://legacy.meow.c-3.moe/${metadata.id}`;
         result.push(
           <div class="post-banner post-banner-green">
-            <div class="post-banner-inner">This is a legacy post migrated from my old blog C3Meow. <a href={link}>Check out the original version!</a></div>
-          </div>
+            <div class="post-banner-inner">
+              This is a legacy post migrated from my old blog C3Meow.{" "}
+              <a href={link}>Check out the original version!</a>
+            </div>
+          </div>,
         );
       }
       return result;
@@ -1266,10 +1289,7 @@ class About implements RenderedEntity {
 class Tags implements RenderedEntity {
   element: HTMLElement;
 
-  constructor(
-    tags?: TagData[],
-    register?: (key: string, value: any) => void,
-  ) {
+  constructor(tags?: TagData[], register?: (key: string, value: any) => void) {
     if (!tags) {
       const rehydrated = rehydrate("tags");
       if (!rehydrated) throw new Error("Hydration failed!");
@@ -1282,12 +1302,8 @@ class Tags implements RenderedEntity {
       <div class="tags">
         {tags.map((tag) => (
           <a href={`/tag/${tag.name}`} class="tags-tag">
-            <div class="tags-name">
-              {tag.name}
-            </div>
-            <div class="tags-count">
-              ×{tag.count}
-            </div>
+            <div class="tags-name">{tag.name}</div>
+            <div class="tags-count">×{tag.count}</div>
           </a>
         ))}
       </div>
@@ -1329,31 +1345,43 @@ class Tags implements RenderedEntity {
 class NotFound implements RenderedEntity {
   element: HTMLElement;
   constructor() {
-    this.element = <div class="not-found">
-      {cloneNode(Bowl)}
-      {cloneNode(NF)}
-      <div class="not-found-hint">
-        404 Not Found
+    this.element = (
+      <div class="not-found">
+        {cloneNode(Bowl)}
+        {cloneNode(NF)}
+        <div class="not-found-hint">404 Not Found</div>
       </div>
-    </div>
+    );
   }
   async entry() {
-    await this.element.animate([{
-      opacity: 0,
-    }, {}], {
-      duration: 500,
-      easing: "ease-out",
-      fill: "both",
-    });
+    await this.element.animate(
+      [
+        {
+          opacity: 0,
+        },
+        {},
+      ],
+      {
+        duration: 500,
+        easing: "ease-out",
+        fill: "both",
+      },
+    );
   }
   async exit() {
-    await this.element.animate([{}, {
-      opacity: 0,
-    }], {
-      duration: 500,
-      easing: "ease-in",
-      fill: "both",
-    }).finished;
+    await this.element.animate(
+      [
+        {},
+        {
+          opacity: 0,
+        },
+      ],
+      {
+        duration: 500,
+        easing: "ease-in",
+        fill: "both",
+      },
+    ).finished;
     this.element.remove();
   }
 }

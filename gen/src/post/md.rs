@@ -118,7 +118,8 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
                             .display_mode(true)
                             .output_type(katex::OutputType::HtmlAndMathml)
                             .max_size(50f64)
-                            .build().unwrap();
+                            .build()
+                            .unwrap();
                         yield match katex::render_with_opts(s.as_ref(), opts) {
                             Ok(r) => Event::Html(r.into()),
                             Err(e) => {
@@ -127,12 +128,13 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
                                 Event::DisplayMath(s)
                             }
                         }
-                    },
+                    }
                     Event::InlineMath(s) => {
                         let opts = katex::Opts::builder()
                             .display_mode(false)
                             .output_type(katex::OutputType::HtmlAndMathml)
-                            .build().unwrap();
+                            .build()
+                            .unwrap();
                         yield match katex::render_with_opts(s.as_ref(), opts) {
                             Ok(r) => Event::Html(r.into()),
                             Err(e) => {
@@ -141,7 +143,7 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
                                 Event::InlineMath(s)
                             }
                         }
-                    },
+                    }
                     e => {
                         assert!(in_codeblock.is_none());
                         yield e;

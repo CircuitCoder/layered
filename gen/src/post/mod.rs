@@ -89,7 +89,8 @@ where
     Ok(())
 }
 
-static FILENAME_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.md").unwrap());
+static FILENAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.md").unwrap());
 
 pub fn file_name_to_id(filename: &str) -> anyhow::Result<&str> {
     let filename_match = FILENAME_RE
@@ -144,7 +145,10 @@ fn serialize_single(
 }
 
 type IncompleteStore = HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)>;
-pub fn revwalk_update_store(dir: impl AsRef<Path>, store: &mut IncompleteStore) -> anyhow::Result<()> {
+pub fn revwalk_update_store(
+    dir: impl AsRef<Path>,
+    store: &mut IncompleteStore,
+) -> anyhow::Result<()> {
     revwalk_time(&dir, |filename, time, oid| {
         let cached = store.get_mut(filename);
         if let Some((_, ref mut creation, ref mut update)) = cached {
@@ -155,10 +159,12 @@ pub fn revwalk_update_store(dir: impl AsRef<Path>, store: &mut IncompleteStore) 
             *creation = Some((time, oid));
         }
     })
-
 }
 
-pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow::Result<HashMap<String, Post>> {
+pub fn readdir<P: AsRef<Path>>(
+    dir: P,
+    title_font: &ttf_parser::Face,
+) -> anyhow::Result<HashMap<String, Post>> {
     let entries = std::fs::read_dir(&dir)?;
     let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> =
         HashMap::new();
@@ -176,33 +182,52 @@ pub fn readdir<P: AsRef<Path>>(dir: P, title_font: &ttf_parser::Face) -> anyhow:
 
     revwalk_update_store(&dir, &mut pre)?;
 
-    pre
-        .into_iter()
-        .map(|(filename, (pre, creation, update))| -> anyhow::Result<(String, Post)> {
-            let serialized = serialize_single(&filename, pre, creation, update, title_font)?;
-            Ok((filename, serialized))
-        })
+    pre.into_iter()
+        .map(
+            |(filename, (pre, creation, update))| -> anyhow::Result<(String, Post)> {
+                let serialized = serialize_single(&filename, pre, creation, update, title_font)?;
+                Ok((filename, serialized))
+            },
+        )
         .collect()
 }
 
-pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(dir: impl AsRef<Path>, paths: I, title_font: &ttf_parser::Face) -> anyhow::Result<HashMap<String, Option<Post>>> {
+pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
+    dir: impl AsRef<Path>,
+    paths: I,
+    title_font: &ttf_parser::Face,
+) -> anyhow::Result<HashMap<String, Option<Post>>> {
     let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> =
         HashMap::new();
     let mut result = HashMap::new();
 
     for path in paths {
-        let parsed = match std::fs::read_to_string(&path).map_err(Into::into).and_then(|content| md::parse(&content)) {
+        let parsed = match std::fs::read_to_string(&path)
+            .map_err(Into::into)
+            .and_then(|content| md::parse(&content))
+        {
             Ok(parsed) => parsed,
             Err(e) => {
                 log::info!("Unable to read file: {}", e);
-                let filename = path.as_ref().file_name().unwrap().to_str().unwrap().to_owned();
+                let filename = path
+                    .as_ref()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned();
                 result.insert(filename, None);
                 continue;
             }
         };
 
         pre.insert(
-            path.as_ref().file_name().unwrap().to_str().unwrap().to_owned(),
+            path.as_ref()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_owned(),
             (parsed, None, None),
         );
     }

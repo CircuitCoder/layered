@@ -7,7 +7,9 @@ type Bootstrap = (
 ) => Promise<void>;
 
 // @ts-ignore
-const { bootstrap, listTags, reset } = (await import("./dist/server/main.js")) as {
+const { bootstrap, listTags, reset } = (await import(
+  "./dist/server/main.js"
+)) as {
   bootstrap: Bootstrap;
   listTags: () => Promise<string[]>;
   reset: () => void;
@@ -76,8 +78,7 @@ async function work() {
 
   // Render all tags
   const tags = await listTags();
-  for (const tag of tags)
-    await renderPath(`/tag/${tag}`);
+  for (const tag of tags) await renderPath(`/tag/${tag}`);
 }
 
 work().catch(console.error);

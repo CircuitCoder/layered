@@ -12,9 +12,7 @@ export type JSXData = {
 function evalClassDefSingle(def: classDefSingle): string[] {
   if (typeof def === "string") return [def];
   else if (def === null || def === undefined) return [];
-  else
-    return Object.keys(def)
-      .filter((key) => def[key]);
+  else return Object.keys(def).filter((key) => def[key]);
 }
 
 function evalClassDef(def: classDef): string {

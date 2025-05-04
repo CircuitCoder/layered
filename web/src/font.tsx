@@ -116,7 +116,9 @@ function nextLine(grps: GroupResp[], maxWidth: number): WidthLine {
     if (!grp.text.match(/^ +$/)) {
       lineOpticalWidthHist.push(lineWidth);
     } else {
-      lineOpticalWidthHist.push(lineOpticalWidthHist[lineOpticalWidthHist.length - 1]);
+      lineOpticalWidthHist.push(
+        lineOpticalWidthHist[lineOpticalWidthHist.length - 1],
+      );
     }
     if (grp.breakAfter) lastBreakAfter = idx;
     ++idx;
