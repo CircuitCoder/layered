@@ -214,19 +214,31 @@ function parsePath(path: String): State {
   else return { ty: "NotFound" };
 }
 
+function stateEqual(a: State, b: State): boolean {
+  if (a.ty !== b.ty) return false;
+  if (a.ty === "Post" && b.ty === "Post") return a.slug === b.slug;
+  if (a.ty === "Tag" && b.ty === "Tag") return a.tag === b.tag;
+  return true;
+}
+
 async function reflection(
   path: string,
   activator: EventTarget | null = null,
   register?: (key: string, value: any) => void,
 ) {
-  // Commit exit animation
-  const newState = parsePath(path);
-  const oldState = state;
+  const prerendered =
+    !SSR && document.getElementById("root")!.hasAttribute("data-prerendered");
 
+  const newState = parsePath(path);
+  if (!prerendered && !SSR && stateEqual(state, newState))
+    return;
+
+  const oldState = state;
   state = newState;
 
   // TODO: Verify existence, or instead use 404
 
+  // Commit exit animation
   if (rendered !== null && !SSR) rendered.exit();
   rendered = null;
 
@@ -244,8 +256,6 @@ async function reflection(
     root.setAttribute("data-view", newState.ty.toLowerCase());
   }
 
-  const prerendered =
-    !SSR && document.getElementById("root")!.hasAttribute("data-prerendered");
   if (prerendered) {
     try {
       await transitionRehydrate(cn === "banner" && oldState.ty === "Vacant");
