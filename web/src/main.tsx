@@ -46,6 +46,9 @@ type State =
       tag: string;
     }
   | {
+    ty: "Tags";
+  }
+  | {
       ty: "About";
     }
   | {
@@ -77,6 +80,36 @@ export function reset() {
   rendered = null;
   preferredLocale = "zh-CN";
   onTop = true;
+}
+
+type TagData = {
+  name: string;
+  count: number;
+  latest: Temporal.Instant;
+}
+
+function tags(posts: PostData[]): TagData[] {
+  const tags = new Map<string, TagData>();
+  for (const post of posts)
+    for (const tag of post.metadata.tags) {
+      const time = Temporal.Instant.from(post.metadata.update_time ?? post.metadata.publish_time);
+      const cur = tags.get(tag);
+      if(!cur) tags.set(tag, {
+        name: tag,
+        count: 1,
+        latest: time,
+      });
+      else {
+        cur.count += 1;
+        if (Temporal.Instant.compare(time, cur.latest) < 0) cur.latest = time;
+      }
+    }
+  return Array.from(tags.values());
+}
+
+export async function listTags(): Promise<string[]> {
+  const data = await getData();
+  return tags(data).map(e => e.name);
 }
 
 function registerDOM(key: string, value: any) {
@@ -155,7 +188,7 @@ function scroll() {
 function updateBannerClass(given?: State): string {
   const used = given ?? state;
   const root = document.getElementById("root")!;
-  const bannerMode = used.ty === "About" || (onTop && used.ty === "Home");
+  const bannerMode = used.ty === "About" || used.ty === "Tags" || (onTop && used.ty === "Home");
   const targetClass = bannerMode ? "banner" : "header";
   if (root.classList.contains(targetClass)) return targetClass;
 
@@ -175,6 +208,7 @@ function parsePath(path: String): State {
   if (path === "/") return { ty: "Home" };
   else if (path === "/search") return { ty: "Search" };
   else if (path === "/about") return { ty: "About" };
+  else if (path === "/tags") return { ty: "Tags" };
   else if (postMatch !== null) return { ty: "Post", slug: decodeURIComponent(postMatch[1]) };
   else if (tagMatch !== null) return { ty: "Tag", tag: decodeURIComponent(tagMatch[1]) };
   else return { ty: "NotFound" };
@@ -286,6 +320,12 @@ async function transitionRender(
     rendered = new About(false, register);
     title = "关于 | 分层 - Layered";
     backlink = CONFIG.BASE + "/about";
+  } else if (state.ty === "Tags") {
+    const t = tags(data);
+    t.sort((a, b) => Temporal.Instant.compare(b.latest, a.latest));
+    rendered = new Tags(t, register);
+    title = "标签 | 分层 - Layered";
+    backlink = CONFIG.BASE + "/tags";
   }
 
   if (!rendered) throw new Error("Not rendered!");
@@ -309,6 +349,7 @@ async function transitionRender(
     } else if (state.ty === "About") (rendered as About).entry();
     else if (state.ty === "Tag") (rendered as List).entry(false);
     else if (state.ty === "NotFound") (rendered as NotFound).entry();
+    else if (state.ty === "Tags") (rendered as Tags).entry();
   }
 
   if (!SSR) {
@@ -1208,6 +1249,69 @@ class About implements RenderedEntity {
   }
 }
 
+class Tags implements RenderedEntity {
+  element: HTMLElement;
+
+  constructor(
+    tags?: TagData[],
+    register?: (key: string, value: any) => void,
+  ) {
+    if (!tags) {
+      const rehydrated = rehydrate("tags");
+      if (!rehydrated) throw new Error("Hydration failed!");
+      this.element = rehydrated;
+      return;
+    }
+    if (SSR) register!(":prerendered", "tags");
+
+    this.element = (
+      <div class="tags">
+        {tags.map((tag) => (
+          <a href={`/tag/${tag.name}`} class="tags-tag">
+            <div class="tags-name">
+              {tag.name}
+            </div>
+            <div class="tags-count">
+              ×{tag.count}
+            </div>
+          </a>
+        ))}
+      </div>
+    );
+  }
+
+  async animate(entry: boolean) {
+    const tags = this.element.querySelectorAll(".tags-tag");
+    const promises = Array.from(tags).map((tag) => {
+      const exited: Keyframe = {
+        clipPath: entry ? "inset(0 100% 0 0)" : "inset(0 0 0 100%)",
+      };
+      const frames = entry ? [exited, {}] : [{}, exited];
+      const delay = randomWithin(0, 300);
+      const duration = randomWithin(400, 600);
+
+      const animation = tag.animate(frames, {
+        duration: duration * DEBUG_ANIMATION_SLOWDOWN,
+        easing: entry ? "ease-out" : "ease-in",
+        fill: "both",
+        delay,
+      });
+      return animation.finished;
+    });
+
+    await Promise.all(promises);
+  }
+
+  async entry() {
+    this.animate(true);
+  }
+
+  async exit() {
+    await this.animate(false);
+    this.element.remove();
+  }
+}
+
 class NotFound implements RenderedEntity {
   element: HTMLElement;
   constructor() {
@@ -1241,13 +1345,3 @@ class NotFound implements RenderedEntity {
 }
 
 if (!SSR) document.addEventListener("DOMContentLoaded", () => bootstrap());
-
-// Helper functions for SSR
-export async function listTags(): Promise<string[]> {
-  const data = await getData();
-  const tags = new Set<string>();
-  for (const post of data)
-    for (const tag of post.metadata.tags)
-      tags.add(tag);
-  return Array.from(tags);
-}
