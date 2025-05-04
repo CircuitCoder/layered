@@ -91,7 +91,7 @@ type TagData = {
 function tags(posts: PostData[]): TagData[] {
   const tags = new Map<string, TagData>();
   for (const post of posts) {
-    if(post.metadata.hidden) continue;
+    if (post.metadata.hidden) continue;
 
     const time = Temporal.Instant.from(
       post.metadata.update_time ?? post.metadata.publish_time,

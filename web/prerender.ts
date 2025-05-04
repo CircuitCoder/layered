@@ -6,10 +6,12 @@ type Bootstrap = (
   initPath: string,
 ) => Promise<void>;
 
-// @ts-ignore
-const { bootstrap, listTags, reset } = (await import(
-  "./dist/server/main.js"
-)) as {
+const {
+  bootstrap,
+  listTags,
+  reset,
+  // @ts-ignore
+} = (await import("./dist/server/main.js")) as {
   bootstrap: Bootstrap;
   listTags: () => Promise<string[]>;
   reset: () => void;
