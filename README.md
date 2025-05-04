@@ -14,8 +14,8 @@
 - [x] Atom feed
 - [x] OpenGraph
 - [x] Comment section
-- [ ] Tag
-- [ ] Search
+- [x] Tag
+- [x] Search
 - [x] Code highlight
 - [ ] Translations
 - [x] SSR (basically preload all inline HTMLs)
@@ -23,11 +23,11 @@
 - [ ] Accessibility
   - [ ] aria tags
   - [ ] reduced motion
-- [ ] Math
+- [x] Math
 - [ ] Typst
 - [ ] Style fixes
   - [ ] Correctly render surrogate text with font subsets
-  - [ ] `content-visibility: auto;` and on-demand canvas rendering
+  - [x] `content-visibility: auto;` and on-demand canvas rendering
   - [x] Title line wrap
 
 ## License
