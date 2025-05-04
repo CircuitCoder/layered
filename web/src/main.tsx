@@ -391,6 +391,10 @@ async function transitionRehydrate(slowEntry: boolean) {
     const a = new About(true);
     rendered = a;
     a.entry();
+  } else if (state.ty === "Tags") {
+    const t = new Tags();
+    rendered = t;
+    t.entry();
   }
 }
 
