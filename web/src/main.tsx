@@ -316,33 +316,34 @@ async function transitionRender(
   } else if (state.ty === "Post") {
     const slug = state.slug; // workaround typechecker
     const post = data.find((p) => p.metadata.id === slug)!;
-    title = post.metadata.title + " | 分层 - Layered";
-    backlink = CONFIG.BASE + "/post/" + slug;
-    rendered = new Post(post, register);
-    desc =
-      post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
+    if (post) {
+      title = post.metadata.title + " | 分层 - Layered";
+      backlink = CONFIG.BASE + "/post/" + slug;
+      rendered = new Post(post, register);
+      desc =
+        post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
+    }
   } else if (state.ty === "Tag") {
     const tag = state.tag;
-    title = `标签：${tag} | 分层 - Layered`;
-    backlink = CONFIG.BASE + "/tag/" + tag;
     const filtered = data.filter(
       (e) => !e.metadata.hidden && e.metadata.tags.includes(tag),
     );
-    desc = `共 ${filtered.length} 篇文章`;
-    rendered = new List(
-      filtered,
-      register,
-      () => (
-        <div class="tag-header">
-          {cloneNode(Icons.Tag)}
-          <span class="tag-name">{tag}</span>
-        </div>
-      ),
-      ["tag-list"],
-    );
-  } else if (state.ty === "NotFound") {
-    title = "404 | 分层 - Layered";
-    rendered = new NotFound();
+    if (filtered.length > 0) {
+      title = `标签：${tag} | 分层 - Layered`;
+      backlink = CONFIG.BASE + "/tag/" + tag;
+      desc = `共 ${filtered.length} 篇文章`;
+      rendered = new List(
+        filtered,
+        register,
+        () => (
+          <div class="tag-header">
+            {cloneNode(Icons.Tag)}
+            <span class="tag-name">{tag}</span>
+          </div>
+        ),
+        ["tag-list"],
+      );
+    }
   } else if (state.ty === "About") {
     rendered = new About(false, register);
     title = "关于 | 分层 - Layered";
@@ -355,12 +356,21 @@ async function transitionRender(
     backlink = CONFIG.BASE + "/tags";
   }
 
+  var notFound = false;
+  if (!rendered && !SSR) {
+    // SSR doesn't allow 404 pages
+    notFound = true;
+    title = "404 | 分层 - Layered";
+    rendered = new NotFound();
+  }
   if (!rendered) throw new Error("Not rendered!");
+
   if (SSR) register!("rendered", rendered?.element);
   else {
     document.getElementById("root")!.appendChild(rendered.element);
 
-    if (state.ty === "Home") (rendered as List).entry(slowEntry);
+    if (notFound) (rendered as NotFound).entry();
+    else if (state.ty === "Home") (rendered as List).entry(slowEntry);
     else if (state.ty === "Search") (rendered as Search).entry(slowEntry);
     else if (state.ty === "Post") {
       let renderedTitle: SVGSVGElement | null = null;
@@ -375,7 +385,6 @@ async function transitionRender(
       (rendered as Post).entry(renderedTitle);
     } else if (state.ty === "About") (rendered as About).entry();
     else if (state.ty === "Tag") (rendered as List).entry(false);
-    else if (state.ty === "NotFound") (rendered as NotFound).entry();
     else if (state.ty === "Tags") (rendered as Tags).entry();
   }
 
