@@ -882,6 +882,26 @@ ol, ul {
   }
 }
 
+figure {
+  margin: 10px 20px;
+}
+
+.inline-svg {
+  width: 100%;
+  @media (prefers-color-scheme: dark) {
+    &:not(.light) {
+      filter: invert(1);
+    }
+  }
+}
+
+figcaption {
+  margin: 0 20px;
+  font-size: 0.8em;
+  line-height: 1.5em;
+  color: var(--color-fg-secondary);
+}
+
 /* About */
 .about {
   left: 0;
