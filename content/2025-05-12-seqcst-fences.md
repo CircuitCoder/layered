@@ -59,7 +59,7 @@ $$
 
 从硬件实现的角度，如果我们把“先后”的视角放在在核心上，即把这个先后解读为之前所有的访存都已经全局可见，后续访存才开始执行的话，可以把这些 Fence 发生的时间定义为这个同步点的 Wall-clock。对于其他 Sequentially-consisten 的 AMO，如果在其本身已经有一个全序 $S$<sup>[3]</sup> 以后也是以类似的方式控制前后的其他访存，那么可以在 $S$ 的基础上扩展，把 Fence 都加进去：
 
-逐个处理每个 Fence F。可以找到目前 S 中所有和 F 相关的其他 SeqCst 访存或者 Fence K，相关指在 $([F] sb [F] \union ([F] sb ; (rf \cup fr \cup mo) ; sb [F]))^+$ 序的前驱或后继。上述阻塞所有访存的实现方式保证了这是一个和 S 兼容的序，并且这里是固定两端为 Fence 后进行一个传递闭包，这是为了避免首先添加的两个本身不直接通过观测相关的 SeqCst 操作后续由于倒序导致第三个和两者都相关的 SeqCst 访存无法插入。
+逐个处理每个 Fence F。可以找到目前 S 中所有和 F 相关的其他 SeqCst 访存或者 Fence K，相关指在 $(sb \cup (sb ; (rf \cup rb \cup mo)^+ ; sb))^+$ 序的前驱或后继。上述阻塞所有访存的实现方式保证了这是一个和 S 兼容的序，并且这里是一个传递闭包，这是为了避免首先添加的两个本身不直接通过观测相关的 SeqCst 操作后续由于倒序导致第三个和两者都相关的 SeqCst 访存无法插入。
 
 ---
 
@@ -68,13 +68,13 @@ $$
 [2] 注意到，在不考虑 Mix-sized access 时 (effectively all general-purposed hardware, 因为大家的缓存都是按缓存行访问的)，这个子序中的每一个连通分量只包含一个地址。所以基本所有硬件内存续都包含一个公理叫作：
 
 $$
-acyclic((rf \cup fr \cup mo)^+ ; po\_loc)
+acyclic((rf \cup rb \cup mo)^+ ; po\_loc)
 $$
 
 意思是LSU、缓存等部件不能让相同地址的访存莫名其妙换顺序，用 C++ 术语是 Coherence-ordered before 和 Sequenced before 兼容 ([intro.races] $\P$ 14-17)。PTX 的文章中直接把这个叫 SC-per-location。这是 Full SC 的一个弱化：
 
 $$
-SC = acyclic((rf \cup fr \cup mo)^+ ; po)
+SC = acyclic((rf \cup rb \cup mo)^+ ; po)
 $$
 
 [3] 对于其他带访存的 SeqCst AMO，这个序的存在不是自然的，比如在 IRIW 中，两个写入线程只有一个写，前后没有别的访存需要进行排序。所以需要额外进行跨线程的同步。
