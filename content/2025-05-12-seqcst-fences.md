@@ -1,5 +1,5 @@
 ---
-title: SeqCst fences in C++
+title: 硬件视角下的 C++ SeqCst Fences
 tags: 微架构,Fences
 ---
 
@@ -16,7 +16,7 @@ a = y.load(relaxed)  |  b = x.load(relaxed)
 
 > 它是 AcqRel Fence，并且额外保证 $W \to R$ 顺序。
 
-但是 Virtually 没有任何一个语言的内存模型是直接这么定义的。这个刻画准确吗？它 Sound & complete 吗？
+这是一个来自 ISA 和硬件视角的定义方法。但是 Virtually 没有任何一个语言的内存模型是直接这么定义的。这个刻画准确吗？它 Sound & complete 吗？
 
 作为一个工科猪还是以 C++ 为例。这句话的前一半首先是对的，标准里说使用 `std::memory_order_seq_cst` 的 Fence 是一个...
 
