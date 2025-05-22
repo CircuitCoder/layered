@@ -287,6 +287,8 @@ $$
 
 ---
 
+<div class="footnotes">
+
 - [1] 这里依赖不是指 C++ 的没人用的 consume，而是说为了完成这个读一定需要某个操作带有的值。
 - [2] 这一条是没办法完全在局部实现的，在总线上需要灌一个 Barrier 下去。不过目前唯一不支持 MCA 的（还勉强活着的）架构是 POWER，其实现仅会在 SMT 共享 Store buffer 时发生 Non-MCA 的现象，外面的缓存还是 Fully coherent and MCA 的，所以这个 Barrier 直接做成清空核心 Store Buffer 即可，代价和复杂度也不是特别高。 <!-- 不要求和其他更弱的访存操作也保持原子性。也就是说只有 SeqCst 的写入操作的生效顺序需要所有线程同意。很遗憾，这部分看上去还是需要整个缓存系统配合实现，可能需要 LLC 上有一把大锁。 -->
 - [3] N4917 [atomics.order] & [intro.race]
@@ -297,3 +299,5 @@ $$
 
   Write coherence 规则的存在导致硬件实现不能干这种事情：对于一个还没有 Commit 的写先去请求 Shared Grant，然后假装已经写入了。当这个 Grant 被 Revoke 的时候，把这个还没有发出的写直接丢掉。这种实现下，这个被丢掉的写 Effectively 被别的核心观测到的时候是在它还没开始执行时就发生了。
 - [6] 见上方 [5] 中第二段开始的对于 Write coherence 的说明。
+
+</div>

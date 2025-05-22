@@ -9,6 +9,9 @@
  *   reduced padding, vertical metadata
  */
 
+/* Webfonts */
+@import url("https://fonts.thu.fail/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+
 /* Typed custom properties */
 
 /* Allow --startup-offset to be animated */
@@ -82,7 +85,7 @@ a {
 }
 
 :root {
-  font-family: "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
+  font-family: "Inter", "Source Sans Pro", "Source Han Sans SC", "Source Han Sans VF SC", sans-serif;
   --title-font: "Source Serif Pro", "Source Han Serif SC Subset", "Source Han Serif SC", "Source Han Serif VF SC", "Source Han Serif", "Source Han Serif VF", serif;
   color-scheme: light dark;
 
@@ -624,7 +627,7 @@ nav {
 
 .post-content {
   font-size: 16px;
-  line-height: 28px;
+  line-height: 1.75;
   letter-spacing: 0.03125em;
 }
 
@@ -933,6 +936,10 @@ summary {
   cursor: pointer;
   margin-left: -30px;
   margin-right: -10px;
+}
+
+.footnotes {
+  font-size: 0.63em;
 }
 
 /* About */
