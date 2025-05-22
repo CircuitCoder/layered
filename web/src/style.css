@@ -96,11 +96,13 @@ a {
   --color-fg: #000;
   --color-fg-secondary: oklab(0.3 0 0);
   --color-fg-icon: oklab(0.7 0 0);
+  --color-bg-block: rgba(0,0,0,.05);
 
   --shard-lightness-1: 0.9;
   --shard-lightness-2: 0.7;
   --shard-lightness-3: 0.4;
   --shard-lightness-docked: 0.4;
+
 
   @media (prefers-color-scheme: dark) {
     &:not(.light) {
@@ -108,6 +110,7 @@ a {
       --color-fg: oklab(0.95 0 0);
       --color-fg-secondary: oklab(0.8 0 0);
       --color-fg-icon: oklab(0.6 0 0);
+      --color-bg-block: rgba(0,0,0,.2);
 
       --shard-lightness-1: 0.4;
       --shard-lightness-2: 0.7;
@@ -811,11 +814,10 @@ nav {
 /* Content */
 blockquote {
   border-left: rgba(0,0,0,.3) 10px solid;
-  background: rgba(0,0,0,.05);
+  background: var(--color-bg-block);
   @media (prefers-color-scheme: dark) {
     &:not(.light) {
       border-left: rgba(0,0,0,.5) 10px solid;
-      background: rgba(0,0,0,.2);
     }
   }
   margin: 0;
@@ -883,7 +885,13 @@ ol, ul {
 }
 
 figure {
-  margin: 10px 20px;
+  padding: 20px 30px;
+  margin: 10px 0;
+  background: var(--color-bg-block);
+
+  @media (max-width: 500px) {
+    padding: 10px 15px;
+  }
 }
 
 .inline-svg {
@@ -900,6 +908,31 @@ figcaption {
   font-size: 0.8em;
   line-height: 1.5em;
   color: var(--color-fg-secondary);
+}
+
+details {
+  margin: 10px 0;
+  position: relative;
+  padding: 0 0 10px 20px;
+
+  &[open]::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -30px;
+    width: 10px;
+    background: var(--color-bg-block);
+    box-sizing: border-box;
+  }
+}
+
+summary {
+  background: var(--color-bg-block);
+  padding: 10px 20px;
+  cursor: pointer;
+  margin-left: -30px;
+  margin-right: -10px;
 }
 
 /* About */
