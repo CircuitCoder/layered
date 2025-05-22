@@ -939,7 +939,8 @@ summary {
 }
 
 .footnotes {
-  font-size: 0.63em;
+  font-size: 0.70em;
+  font-weight: 300;
 }
 
 /* About */
