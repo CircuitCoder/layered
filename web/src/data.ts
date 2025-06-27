@@ -5,7 +5,7 @@ import { setPosts } from "./search/wrapper";
 const SSR = import.meta.env.SSR;
 
 export async function getDataInner(): Promise<Post[]> {
-  if (SSR) return (await import("./assets/data.json")).default;
+  if (SSR) return (await import("./assets/data.json")).default as Post[];
   const req = await fetch(DATA_URL);
   return await req.json();
 }
