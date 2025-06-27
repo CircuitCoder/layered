@@ -1155,9 +1155,18 @@ class Post implements RenderedEntity {
     ) as SVGPathElement[];
     const promises = strokes.map((stroke, _i) => {
       const dist = getStrokeDist(stroke, 48);
+      const dirX = parseFloat(stroke.getAttribute("data-dir-x")!);
+      const dirY = parseFloat(stroke.getAttribute("data-dir-y")!);
 
-      const offsetX = entry ? randomWithin(-50, 35) : randomWithin(-10, 25);
-      const offsetY = entry ? randomWithin(-50, 35) : randomWithin(-10, 25);
+      // Cross product with the canonical entry direction (1, 0)
+      const len = Math.sqrt(dirX * dirX + dirY * dirY);
+      const entryWeight = Math.max(Math.min(dirX + dirY / 5, 50), -50);
+      const entryX = dirX / len * entryWeight + randomWithin(-10, 10);
+      const entryY = dirY / len * entryWeight + randomWithin(-10, 10);
+
+      const offsetX = entry ? -entryX : entryX;
+      const offsetY = entry ? -entryY : entryY;
+
       const scale = entry ? randomWithin(1, 1.1) : randomWithin(0.9, 1);
 
       const freeKeyframe = {

@@ -10,6 +10,9 @@ use ttf_parser::Rect;
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::direction;
+use crate::direction::Direction;
+
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
@@ -100,7 +103,7 @@ fn serialize_outline(outline: &Outline) -> String {
 pub struct CharResp {
     #[ts(type = "string")]
     pub char: char,
-    pub components: Vec<String>,
+    pub components: Vec<(String, Direction)>,
     pub bbox: BBox,
     // pub bearing: i16,
     pub hadv: u16,
@@ -128,7 +131,7 @@ pub struct TitleResp {
 
 // TODO: optimize: use slices
 fn split_closed_loop<I: Iterator<Item = OutlineCmd>>(outline: I) -> Vec<Outline> {
-    let mut output = Vec::new();
+    let mut output: Vec<Vec<OutlineCmd>> = Vec::new();
     let mut cur = Vec::new();
 
     for cmd in outline {
@@ -141,6 +144,7 @@ fn split_closed_loop<I: Iterator<Item = OutlineCmd>>(outline: I) -> Vec<Outline>
     }
 
     if !cur.is_empty() {
+        cur.push(OutlineCmd::Close);
         output.push(cur);
     }
 
@@ -352,15 +356,25 @@ pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> 
         .glyph_hor_advance(glyph)
         .ok_or_else(|| anyhow::anyhow!("Glyph '{}' has no outline and hor adv", c))?;
 
-    let mut components = split_components(builder.outline);
+    let mut components: Vec<Vec<OutlineCmd>> = split_components(builder.outline);
     components.sort_by(|a, b| {
-        let a_bbox =
+        let a_bbox: lyon_path::geom::euclid::Box2D<f32, lyon_path::geom::euclid::UnknownUnit> =
             lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(a.iter().cloned()));
         let b_bbox =
             lyon_algorithms::aabb::bounding_box(component_to_lyon_path_ev(b.iter().cloned()));
         return a_bbox.min.x.partial_cmp(&b_bbox.min.x).unwrap();
     });
-    let components_serialized = components.iter().map(|c| serialize_outline(c)).collect();
+    let components_serialized = components
+        .iter()
+        .map(|c| {
+            let s = serialize_outline(c);
+            let dir = direction::compute_direction(
+                &lyon_path::Path::from_iter(component_to_lyon_path_ev(c.iter().cloned())),
+                1e-1,
+            );
+            (s, dir)
+        })
+        .collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
 
     let r = Ok(CharResp {

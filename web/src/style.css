@@ -1394,3 +1394,9 @@ root.header-trigger {
     opacity: 0;
   }
 }
+
+/* Debug stuff */
+.debug-tracer {
+  stroke-width: 10px;
+  stroke: white;
+}
