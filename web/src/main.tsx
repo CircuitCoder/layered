@@ -1174,8 +1174,8 @@ class Post implements RenderedEntity {
           translate(${offsetX}px, ${offsetY}px)
           scale(calc(${scale} * var(--size) / var(--em)))
           translate(calc(0.5px *  var(--em)), calc(-0.5px *  var(--em)))
-          scaleX(${Math.abs(offsetX) / (entry ? 250 : 25)})
-          scaleY(${Math.abs(offsetY) / (entry ? 50 : 25)})
+          scaleX(${Math.min(10 / Math.abs(offsetX), 1)})
+          scaleY(${Math.min(10 / Math.abs(offsetY), 1)})
           translate(calc(-0.5px *  var(--em)), calc(0.5px *  var(--em)))
         `, // FIXME: figure out how to correct viewBox transform orogin
         opacity: 0,
