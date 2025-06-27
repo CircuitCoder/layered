@@ -17,7 +17,7 @@ $$
 f(\mathbf{p}) = \begin{cases} 0& \mathbf{p} \not \in int(L),\\ 1 \over A(L) & \mathbf{p} \in int(L), \end{cases}
 $$
 
-So first, we need to computing the area of $L$. Another subtle thing that needs to be determine is the orientation of $L$, because it's not guaranteed that it has conter-clockwise orientation. Both of these can be computed in a single step by first assuming $L$ has the correct orientation, compute the area $A(L)$ as-is, and then judge the orientation by the sign of $A(L)$.
+So first, we need to compute the area of $L$. Another subtle thing that needs to be determine is the orientation of $L$, because it's not guaranteed that it has conter-clockwise orientation. Both of these can be computed in a single step by first assuming $L$ has the correct orientation, compute the area $A(L)$ as-is, and then judge the orientation by the sign of $A(L)$.
 
 $$
 A(L) = \iint_{int(L)} dA = \oint_L x dy
