@@ -33,11 +33,11 @@ async function renderPath(path: string) {
           `<meta name="giscus:backlink" href="${value}"></head>`,
         );
       else if (key === ":prerendered")
-        tmpl = tmpl.replace(/<root /, `<root data-prerendered="${value}" `);
+        tmpl = tmpl.replace(/<root /, `<root data-prerendered="${value.replace(/"/g, '&quot;')}" `);
       else if (key.startsWith(":og:"))
         tmpl = tmpl.replace(
           /<\/head>/,
-          `<meta property="${key.slice(1)}" content="${value}"></head>`,
+          `<meta property="${key.slice(1)}" content="${value.replace(/"/g, '&quot;')}"></head>`,
         );
       else console.log("Unknown special key:", key);
     } else {
