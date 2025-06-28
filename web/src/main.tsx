@@ -67,6 +67,9 @@ interface RenderedEntity {
 
 const SSR = import.meta.env.SSR;
 const DEBUG_ANIMATION_SLOWDOWN: number = 1;
+const CANONIAL_ENTRY_DIR_X = 5 / Math.sqrt(26);
+const CANONIAL_ENTRY_DIR_Y = 1 / Math.sqrt(26);
+const ENTRY_RANDOMIZATION = 20;
 
 let state: State = { ty: "Vacant" };
 let rendered: RenderedEntity | null = null;
@@ -1158,11 +1161,10 @@ class Post implements RenderedEntity {
       const dirX = parseFloat(stroke.getAttribute("data-dir-x")!);
       const dirY = parseFloat(stroke.getAttribute("data-dir-y")!);
 
-      // Cross product with the canonical entry direction (1, 0)
-      const len = Math.sqrt(dirX * dirX + dirY * dirY);
-      const entryWeight = Math.max(Math.min(dirX + dirY / 5, 50), -50);
-      const entryX = dirX / len * entryWeight + randomWithin(-10, 10);
-      const entryY = dirY / len * entryWeight + randomWithin(-10, 10);
+      // Dot product with the canonical entry direction normalize((5, 1))
+      const entryScale = dirX * CANONIAL_ENTRY_DIR_X + dirY * CANONIAL_ENTRY_DIR_Y;
+      const entryX = dirX * entryScale * 100 + randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
+      const entryY = dirY * entryScale * 100 + randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
 
       const offsetX = entry ? -entryX : entryX;
       const offsetY = entry ? -entryY : entryY;

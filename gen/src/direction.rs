@@ -106,6 +106,7 @@ pub fn compute_direction(p: &Path, eps: f64) -> Direction {
     let mean_trace = (cov.var_x + cov.var_y) / 2.0;
     assert!(mean_trace * mean_trace >= det);
     let larger_ev = mean_trace + (mean_trace * mean_trace - det).sqrt();
+    let shorter_ev = mean_trace - (mean_trace * mean_trace - det).sqrt();
 
     if larger_ev < eps {
         return Direction {
@@ -118,7 +119,7 @@ pub fn compute_direction(p: &Path, eps: f64) -> Direction {
     let eigenvector_y = larger_ev - cov.var_x;
 
     let eigenvector_len = (eigenvector_x * eigenvector_x + eigenvector_y * eigenvector_y).sqrt();
-    let wanted_len = larger_ev.sqrt();
+    let wanted_len = 1f64 - (shorter_ev / larger_ev).abs().sqrt();
 
     let vector = (
         eigenvector_x / eigenvector_len * wanted_len,
