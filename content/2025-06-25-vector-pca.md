@@ -3,6 +3,8 @@ title: Determining the "direction" of a vector shape
 tags: 开发
 ---
 
+Edited 06-29: updated how to compute the length of the direction vector. See the end of this post.
+
 Intuitively, the Chinese stroke <ruby>"㇐"<rt>U+31D0</rt></ruby> has a _horizontal_ direction, while <ruby>"㇓"<rt>U+31D3</rt></ruby> has a _mostly top-right to bottom-left_ direction. How do we determine the "direction" of a stroke?
 
 First we need to figure out what is a stroke and what is a "direction". Since we are working in a 2D plane, we can instead use a method for any **closed loop without self-intersection**. Most frequently, these shapes are represented in piecewise parametric curves<sup>[1]</sup>, which is also the case for font-shapped characters from free-type fonts. One possible definition of "direction" is the main axis of the smallest bounding ellipsis. Computing the smallest bounding ellipsis is hard to do analytically, but we can deal with another form of ellipsis much more easily: statistics has given us a tool for dealing with _fitted_ ellipsis: principal component analysis (PCA).
@@ -14,7 +16,7 @@ In practice, PCA is always used with samples, but instead we can abuse it to com
 First, the PDF of the distribution over the internal of some shape closed $L$ with internal $int(L)$ and area $A(L)$ is:
 
 $$
-f(\mathbf{p}) = \begin{cases} 0& \mathbf{p} \not \in int(L),\\ 1 \over A(L) & \mathbf{p} \in int(L), \end{cases}
+f(\mathbf{p}) = \begin{cases} 0& \mathbf{p} \notin int(L),\\ 1 \over A(L) & \mathbf{p} \in int(L), \end{cases}
 $$
 
 So first, we need to compute the area of $L$. Another subtle thing that needs to be determine is the orientation of $L$, because it's not guaranteed that it has conter-clockwise orientation. Both of these can be computed in a single step by first assuming $L$ has the correct orientation, compute the area $A(L)$ as-is, and then judge the orientation by the sign of $A(L)$.
@@ -84,9 +86,9 @@ BTW, since we are dealing with a symmetric real matrix ($b = c$), it's guarantee
 
 $$
 \begin{aligned}
-& (a - d)^2 >= 0 \\
-\implies & (a + d)^2 >= 4 a d >= 4 a d - 4 b c \\
-\implies & \frac{1}{4} tr(A)^2 = \frac{1}{4} (a + d)^2 >= ad - bc = det(A)
+& (a - d)^2 \geq 0 \\
+\implies & (a + d)^2 \geq 4 a d \geq 4 a d - 4 b c \\
+\implies & \frac{1}{4} tr(A)^2 = \frac{1}{4} (a + d)^2 \geq ad - bc = det(A)
 \end{aligned}
 $$
 
@@ -106,6 +108,20 @@ The above figure shows the computed direction vector scaled by 10. Because the l
 Also because of this, the length of the vector does not directly reflect the "outer dimension" of the stroke. The distribution of thickness along the axis will affect the length of the vector. One may argue this is not a good indicator of the dimension of a shape. In that case, a distribution along the boundary of the shape may be used instead of the internal of the shape.
 
 But for me, this is good enough™, and does reflect the optical heaviness of the various part of a stroke, so I'm settling with this.
+
+---
+
+Edit 06/29: We noticed a problem with the aforementioned approach to compute the length of direction vectors. When the primary and secondary component has similar derivation, the direction of the primary component alone may not actually suggest the shape of the original distribution. An example is the dot in the figure above.
+
+Instead, we choose to scale the direction vector based on the ratio between the derivations along primary and secondary component (square root of the two eigenvalues):
+
+$$
+L = 1 - \sqrt{\lvert \frac{\lambda_2}{\lambda_1} \rvert}
+$$
+
+This mapping has the property that if $\lambda_1 \approx \lambda_2$, then $L = 0$, effectively suggests that the shape has _no direction_. The more eccentric the fitted ellipsis is, the closer $L$ is to 1. One can also just the use ellipsis eccentricity.
+
+Numerically, $\lambda_1 \approx 0$ indicates a small vector shape. A good fallback is to just return $L = 0$.
 
 ---
 
