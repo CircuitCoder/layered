@@ -453,10 +453,9 @@ function freezeScroll(el: HTMLElement) {
   const scrollY = window.scrollY;
   el.style.setProperty("position", "fixed");
   el.style.setProperty("top", `-${scrollY}px`);
-  // Override --scroll variable
-  el.style.setProperty("--scroll", `${scrollY}`);
 
-  //FIXME: cancel ongoing scroll animation
+  // Override --scroll variable
+  if (!scrollTimeline) el.style.setProperty("--scroll", `${scrollY}`);
 }
 
 function resetPrerenderedGiscusTheme() {
@@ -828,6 +827,7 @@ class Search implements RenderedEntity {
 class Post implements RenderedEntity {
   element: HTMLElement;
   observer: IntersectionObserver | null = null;
+  scrollAnimations: Animation[] = [];
 
   constructor(post?: PostData, register?: (key: string, value: any) => void) {
     // TODO: actually use hash of post
@@ -1013,7 +1013,7 @@ class Post implements RenderedEntity {
     renderedTitle?.style.setProperty("opacity", "0");
 
     Post.applyTitleVariation(title, renderedTitle);
-    if (scrollTimeline) Post.enableTitleScrollAnimation(title);
+    if (scrollTimeline) this.enableTitleScrollAnimation(title);
     if (!renderedTitle) Post.applyTitleFreeAnimation(title, true);
     contentWrapper.animate(
       [
@@ -1044,8 +1044,15 @@ class Post implements RenderedEntity {
 
   async exit() {
     const el = this.element;
-    el.classList.add("post-exiting");
+    for(const anim of this.scrollAnimations) {
+      // Pausing the animation alone is not enough, because current in Chrome the pausing is
+      // implemented asynchronously, and we don't know when we can reset the scroll.
+
+      anim.commitStyles();
+      anim.cancel();
+    }
     freezeScroll(el);
+    el.classList.add("post-exiting");
     const title = el.querySelector(":scope > .title") as SVGSVGElement;
     const titleRemoved = Post.applyTitleFreeAnimation(title, false);
     const content = el.querySelector(".post-content-wrapper") as HTMLElement;
@@ -1207,9 +1214,9 @@ class Post implements RenderedEntity {
     await Promise.all(promises);
   }
 
-  private static enableTitleScrollAnimation(title: SVGElement) {
-    const grps = title.querySelectorAll("g.var-group") as NodeListOf<SVGGElement>;
-    grps.forEach((grp) => {
+  private enableTitleScrollAnimation(title: SVGElement) {
+    const grps = Array.from(title.querySelectorAll("g.var-group")) as SVGGElement[];
+    this.scrollAnimations = grps.map((grp) => (
       grp.animate([
         {},
         {
@@ -1223,8 +1230,8 @@ class Post implements RenderedEntity {
       ], {
         timeline: scrollTimeline,
         fill: "both",
-      });
-    })
+      })
+    ));
   }
 }
 
