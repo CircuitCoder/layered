@@ -134,12 +134,23 @@ root {
   --scroll: 0;
 }
 
+/* Trigger for banner mode */
 #scroll-sentinel {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 20px; /* Dictates the scroll distance from top */
+  pointer-events: none;
+}
+
+/* Scroll animation timeline */
+#scroll-subject {
+  position: absolute;
+  top: 100vh;
+  left: 0;
+  width: 100%;
+  height: 0;
   pointer-events: none;
 }
 
@@ -575,7 +586,7 @@ nav {
         )
       );
 
-    /* filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 10)); */
+    filter: blur(calc(1px * var(--scroll, 0) * (var(--var-scale) - 0.7) / 10));
     opacity: calc(1 - var(--scroll, 0) * (var(--var-scale) - 0.5) / 200);
   }
 }

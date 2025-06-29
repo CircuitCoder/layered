@@ -78,6 +78,8 @@ type Locale = "zh-CN" | "en-US";
 let preferredLocale: Locale = "zh-CN"; // TODO: parse from URL
 let onTop = true;
 
+let scrollTimeline: AnimationTimeline | null = null;
+
 export function reset() {
   state = { ty: "Vacant" };
   rendered = null;
@@ -130,6 +132,13 @@ export async function bootstrap(
   register: (key: string, value: any) => void = registerDOM,
   initPath: string = document.location.pathname,
 ) {
+  if (!SSR) {
+    if (window.ViewTimeline)
+      scrollTimeline = new window.ViewTimeline({ subject: document.getElementById("scroll-subject"), axis: "block" });
+    else
+      window.addEventListener("scroll", scroll);
+  }
+
   applyStatic(register);
 
   // Render
@@ -146,7 +155,6 @@ export async function bootstrap(
   });
   observer.observe(sentinel);
 
-  window.addEventListener("scroll", scroll);
   window.addEventListener("click", (e) => {
     // Check if is internal URL
     let link = getLinkInAnscenstor(e.target);
@@ -447,6 +455,8 @@ function freezeScroll(el: HTMLElement) {
   el.style.setProperty("top", `-${scrollY}px`);
   // Override --scroll variable
   el.style.setProperty("--scroll", `${scrollY}`);
+
+  //FIXME: cancel ongoing scroll animation
 }
 
 function resetPrerenderedGiscusTheme() {
@@ -1003,6 +1013,7 @@ class Post implements RenderedEntity {
     renderedTitle?.style.setProperty("opacity", "0");
 
     Post.applyTitleVariation(title, renderedTitle);
+    if (scrollTimeline) Post.enableTitleScrollAnimation(title);
     if (!renderedTitle) Post.applyTitleFreeAnimation(title, true);
     contentWrapper.animate(
       [
@@ -1194,6 +1205,26 @@ class Post implements RenderedEntity {
     });
 
     await Promise.all(promises);
+  }
+
+  private static enableTitleScrollAnimation(title: SVGElement) {
+    const grps = title.querySelectorAll("g.var-group") as NodeListOf<SVGGElement>;
+    grps.forEach((grp) => {
+      grp.animate([
+        {},
+        {
+          opacity: 'calc(1 - 4 * (var(--var-scale) - 0.5))',
+          filter: 'blur(calc(1px * 40 * (var(--var-scale) - 0.7)))',
+          transform: `translate(
+            calc((var(--var-offset-x, 0px) + 1px * var(--grp-line-xdiff, var(--grp-xdiff))) * var(--size)),
+            calc(var(--var-offset-y, 0px) * var(--size) - 100vh * (var(--var-scale) - 0.5) / 2)
+          )`
+        },
+      ], {
+        timeline: scrollTimeline,
+        fill: "both",
+      });
+    })
   }
 }
 
@@ -1411,3 +1442,9 @@ class NotFound implements RenderedEntity {
 }
 
 if (!SSR) document.addEventListener("DOMContentLoaded", () => bootstrap());
+
+declare global {
+  interface Window {
+    ViewTimeline: any
+  }
+}
