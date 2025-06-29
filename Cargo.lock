@@ -879,6 +879,7 @@ dependencies = [
  "lyon_path",
  "notify-debouncer-full",
  "pulldown-cmark",
+ "rayon",
  "regex",
  "serde",
  "serde_json",

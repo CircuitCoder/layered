@@ -2,6 +2,7 @@ use std::{collections::HashMap, os::unix::prelude::OsStrExt, path::Path, sync::L
 
 use chrono::TimeZone;
 use git2::{Oid, Sort};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use regex::Regex;
 use serde::Serialize;
 
@@ -182,7 +183,7 @@ pub fn readdir<P: AsRef<Path>>(
 
     revwalk_update_store(&dir, &mut pre)?;
 
-    pre.into_iter()
+    pre.into_par_iter()
         .map(
             |(filename, (pre, creation, update))| -> anyhow::Result<(String, Post)> {
                 let serialized = serialize_single(&filename, pre, creation, update, title_font)?;
@@ -199,7 +200,7 @@ pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
 ) -> anyhow::Result<HashMap<String, Option<Post>>> {
     let mut pre: HashMap<String, (ParsedMarkdown, Option<(DT, Oid)>, Option<(DT, Oid)>)> =
         HashMap::new();
-    let mut result = HashMap::new();
+    let mut skipped = Vec::new();
 
     for path in paths {
         let parsed = match std::fs::read_to_string(&path)
@@ -216,7 +217,7 @@ pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
                     .to_str()
                     .unwrap()
                     .to_owned();
-                result.insert(filename, None);
+                skipped.push(filename);
                 continue;
             }
         };
@@ -234,9 +235,15 @@ pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
 
     revwalk_update_store(&dir, &mut pre)?;
 
-    for (filename, (pre, creation, update)) in pre {
-        let serialized = serialize_single(&filename, pre, creation, update, title_font)?;
-        result.insert(filename, Some(serialized));
+    let mut collected = pre.into_par_iter().map(
+        |(filename, (pre, creation, update))| {
+            let serialized = serialize_single(&filename, pre, creation, update, title_font)?;
+            Ok((filename, Some(serialized)))
+        }
+    ).collect::<anyhow::Result<HashMap<_, _>>>()?;
+
+    for s in skipped {
+        collected.insert(s, None);
     }
-    Ok(result)
+    Ok(collected)
 }
