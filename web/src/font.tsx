@@ -44,7 +44,7 @@ export function materialize(
             }}
           >
             {chr.components.map((comp) => (
-              <path d={comp[0]} data-dir-x={comp[1].vector[0]} data-dir-y={comp[1].vector[1]}></path>
+              <path d={comp[0]} data-dir-x={comp[1][0]} data-dir-y={comp[1][1]}></path>
             ))}
           </g>
         );

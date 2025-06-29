@@ -7,13 +7,11 @@ use lyon_path::PathEvent;
 use tempfile::NamedTempFile;
 use ttf_parser::Rect;
 
-use serde::Deserialize;
 use serde::Serialize;
 
 use crate::direction;
-use crate::direction::Direction;
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug, ts_rs::TS)]
+#[derive(Serialize,  PartialEq, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "ty", content = "spec")]
@@ -58,7 +56,7 @@ impl OutlineCmd {
 
 pub type Outline = Vec<OutlineCmd>;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, ts_rs::TS)]
+#[derive(Serialize, Clone, Copy, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct BBox {
     pub top: i16,
@@ -98,18 +96,39 @@ fn serialize_outline(outline: &Outline) -> String {
     ret
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[derive(Clone, Debug, ts_rs::TS)]
+#[ts(type = "number")]
+pub struct ReducedF32(f32);
+
+impl Serialize for ReducedF32 {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        // Round to 3 decimal places
+        let rounded = (self.0 * 1000.0).round() / 1000.0;
+        serializer.serialize_f32(rounded)
+    }
+}
+
+impl From<f32> for ReducedF32 {
+    fn from(value: f32) -> Self {
+        ReducedF32(value)
+    }
+}
+
+#[derive(Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct CharResp {
     #[ts(type = "string")]
     pub char: char,
-    pub components: Vec<(String, Direction)>,
+    pub components: Vec<(String, (ReducedF32, ReducedF32))>,
     pub bbox: BBox,
     // pub bearing: i16,
     pub hadv: u16,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[derive(Serialize, Clone, Debug, ts_rs::TS)]
 #[serde(rename_all = "camelCase")]
 #[ts(export)]
 pub struct GroupResp {
@@ -120,7 +139,7 @@ pub struct GroupResp {
     pub break_after: bool,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, ts_rs::TS)]
+#[derive(Serialize, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 pub struct TitleResp {
     pub groups: Vec<GroupResp>,
@@ -372,7 +391,7 @@ pub fn parse_char(c: char, face: &ttf_parser::Face) -> anyhow::Result<CharResp> 
                 &lyon_path::Path::from_iter(component_to_lyon_path_ev(c.iter().cloned())),
                 1e-1,
             );
-            (s, dir)
+            (s, (dir.0.into(), dir.1.into()))
         })
         .collect();
     // let bearing = face.glyph_hor_side_bearing(glyph).unwrap_or(0);
