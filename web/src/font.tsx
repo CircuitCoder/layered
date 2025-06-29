@@ -35,7 +35,6 @@ export function materialize(
       let grpAccum = 0;
 
       const chrs = grp.chars.map((chr) => {
-        console.log(chr);
         const glyph = (
           <g
             class="glyph"
