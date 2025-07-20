@@ -50,7 +50,13 @@ Acquire / Release semantics 的定义比较简单，在大多数 ISA / 编译器
 
 ### NUMA / LLC Slices
 
-考虑一个 NUMA 结构，LLC 有多个 Slice，不同的 L2 到不同的 Slice 的延迟不同。这个时候，即使总线保证每个器件按顺序处理请求<sup>[5]</sup>，也无法只通过发送顺序进行同步，因为这个请求真正到达对应 Slice 的时间可能不同。使用 AMBA 的术语，这一系统中的访存缺乏 Multi-copy atomicity: 不同的写可能会以不同顺序被不同核心观测到。
+<details>
+<summary>2025-07-20 更新说明</summary>
+
+在更新前，本段文字对于 MCA 的说明不准确。即使在存在写请求<strong>到达</strong>不同 Coherence home 的延迟不同，只要要求写 Ack 保证写全局可见即可，这个系统依旧是保持 MCA 的。特别地，即使 Unified LLC 的系统中，如果 NoC 存在任何动态路由，都可能导致请求换序。
+</details>
+
+考虑一个 NUMA 结构，LLC 有多个 Slice，不同的 L2 到不同的 Slice 的延迟不同。这个时候，即使总线保证每个器件按顺序处理请求<sup>[5]</sup>，也无法只通过发送顺序进行同步，因为这个请求真正到达对应 Slice 的时间可能不同。常见的总线协议会通过写回应保证某个写一定生效，但是也存在系统不包含写回应，或者写回应收到时并不能保证所有系统内的 Agent 都可以读到写入的数据<sup>[10]</sup>。用 AMBA 的术语，这一系统中的访存缺乏 Multi-copy atomicity。一个后果是不同的写可能会以不同顺序被不同核心观测到。
 
 考虑如下例子：
 
@@ -66,11 +72,11 @@ ST [lock] <- 1     LD R <- [x]
 
 如果 `lock` 的 Home line 距离 Th 0 更近，[x] 距离 Th 1 更近，那么如果只保证 L2 发往各个 LLC Slice 的顺序和 Program order 一致，也可能会发生 `R = 0, L = 1` 的结果。加个 `if` 也不行（分支预测 Yes！）。注意到，这里由于缓存是一个层级结构，LLC 有多个 Slice 导致了 L2 本身无法保证请求按顺序生效，因此要不然 L2 本身需要 Fence-aware，要不然上级结构需要根据 L2 的回应进行同步。
 
-关于 Multi-copy atomicity 的实现和影响将也会有后续文章讨论。无论如何，在总线缺乏 MCA 的情况下，肯定需要在某一级 Block 请求了，最简单的方法是所有级别都不 Fence aware，直接在 LSU 上一把大锁：Fence 等待先前的所有请求完成之后，再开始之后的请求。
+关于 Multi-copy atomicity 的实现和影响将也会有[后续文章](mca)讨论。无论如何，在总线缺乏 MCA 的情况下，肯定需要在某一级 Block 请求了，最简单的方法是所有级别都不 Fence aware，直接在 LSU 上一把大锁：Fence 等待先前的所有请求完成之后，再开始之后的请求。
 
 然而检测访存完成也需要小心处理。等待请求完成需要依赖“完成”是准确有效的。Load 的完成是自然的，因为 Load 有一个返回值，当这个值回到 LSU 自然整个访存子系统都完成了。<small>什么？Load value prediction？唉搞微架构的，下次聊</small>
 
-对于写入，常见架构设计上是一个 Fire-and-forget 的设计，提交到 Store buffer 内就是胜利，认为就全局生效了，实际上并没有。如果外面的缓存不支持 MCA，那么需要有一个位置跟踪访存请求的完成情况（例如 MSHR），等待总线上访存的完成消息，并且这个完成消息得是可靠的<sup>[6]</sup>。
+对于写入，常见架构设计上是一个 Fire-and-forget 的设计，提交到 Store buffer 内就是胜利，认为就全局生效了，实际上并没有。如果外面的缓存不支持 MCA，那么需要有特殊的 Barrier 消息，或者等待总线上保证全局可见的 Ack<sup>[6]</sup>。
 
 ### Request reorder
 
@@ -126,6 +132,7 @@ Alternatively, Write buffer 当 Miss 的时候等待 Refill 完成再释放，�
 
 ---
 
+<div class="footnotes">
 [1] 在三个 Context 下具体讨论一下这些都在鬼扯什么：
 
 **首先讨论在 C++ 标准中的定义。** 以下章节号以 [N4917 C++26 Draft](https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2022/n4917.pdf) 为准，因为穷学生买不起标准。
@@ -146,7 +153,7 @@ C++ 执行的单位是表达式，因此 Program order 这里其实指 "Sequence
 
 [5] 比如 AXI。In contrast, Tilelink 不保证 (SiFive Tilelink Spec 1.9.3, 6.5 P45)
 
-[6] 例如 SiFive Tilelink Spec 1.9.3, 6.5 P45 要求回应必须有效反应请求的生效情况，并且如果已经给出一个请求回应，后续收到的请求生效一定在前面已给出回应的请求之后。
+[6] CHI-A 是一个不保证 Mdan但有特殊 Barrier 的总线。相比下，CHI-B 要求了 MCA 并且 Deprecate 了 Barrier 消息。对于 Ack 所保证的全局可见性，可以参考 SiFive Tilelink Spec 1.9.3, 6.5 P45 要求回应必须有效反应请求的生效情况，并且如果已经给出一个请求回应，后续收到的请求生效一定在前面已给出回应的请求之后。
 
 [7] 这里“足够强”指的是内存一致性协议必须有效保证各种序，尤其是 Coherence order 是成立的，例如 Tilelink 中需要一个 E channel 发送 GrantAck，以避免总线上消息换序导致 Total coherence order 的丢失。如下是一个例子，在没有 GrantAck 时，两个 Master 都想要写权限，所有消息针对的是同一个 Block。
 
@@ -171,3 +178,7 @@ Master A            Slave              Master B
 
 
 [9] Christopher Pulte, Shaked Flur, Will Deacon, Jon French, Susmit Sarkar, and Peter Sewell. 2017. Simplifying ARM concurrency: multicopy-atomic axiomatic and operational models for ARMv8. Proc. ACM Program. Lang. 2, POPL, Article 19 (January 2018), 29 pages. [https://doi.org/10.1145/3158107](https://doi.org/10.1145/3158107)
+
+[10] 一个例子是 PowerPC 下的共享 Store buffer。这可以导致 SMT 的邻居可以早于其他核心上的线程观测到一个写入。与之对比，x86-TSO 实际上要求 SMT 中的 Store buffer 必须拆分。
+
+</div>
