@@ -28,3 +28,6 @@ src/typings
 src/assets/data.json
 src/assets/subset.woff2
 public/feed.xml
+
+# env
+/.env

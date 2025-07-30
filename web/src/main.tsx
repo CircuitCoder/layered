@@ -18,7 +18,6 @@ import {
 import { jsx, clone as cloneNode } from "./jsx";
 import { search } from "./search/wrapper";
 import * as Icons from "./icons";
-import * as CONFIG from "./config";
 
 import { Temporal } from "@js-temporal/polyfill";
 import "giscus";
@@ -329,7 +328,7 @@ async function transitionRender(
     const post = data.find((p) => p.metadata.id === slug)!;
     if (post) {
       title = post.metadata.title + " | 分层 - Layered";
-      backlink = CONFIG.BASE + "/post/" + slug;
+      backlink = import.meta.env.VITE_BASE + "/post/" + slug;
       rendered = new Post(post, register);
       desc =
         post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
@@ -341,7 +340,7 @@ async function transitionRender(
     );
     if (filtered.length > 0) {
       title = `标签：${tag} | 分层 - Layered`;
-      backlink = CONFIG.BASE + "/tag/" + tag;
+      backlink = import.meta.env.VITE_BASE + "/tag/" + tag;
       desc = `共 ${filtered.length} 篇文章`;
       rendered = new List(
         filtered,
@@ -358,13 +357,13 @@ async function transitionRender(
   } else if (state.ty === "About") {
     rendered = new About(false, register);
     title = "关于 | 分层 - Layered";
-    backlink = CONFIG.BASE + "/about";
+    backlink = import.meta.env.VITE_BASE + "/about";
   } else if (state.ty === "Tags") {
     const t = tags(data);
     t.sort((a, b) => Temporal.Instant.compare(b.latest, a.latest));
     rendered = new Tags(t, register);
     title = "标签 | 分层 - Layered";
-    backlink = CONFIG.BASE + "/tags";
+    backlink = import.meta.env.VITE_BASE + "/tags";
   }
 
   var notFound = false;
@@ -409,7 +408,7 @@ async function transitionRender(
     register!(":title", title);
     if (backlink) register!(":backlink", title);
     register!(":og:title", title);
-    register!(":og:url", CONFIG.BASE + path);
+    register!(":og:url", import.meta.env.VITE_BASE + path);
     register!(":og:type", "website");
     register!(":og:description", desc);
   }
