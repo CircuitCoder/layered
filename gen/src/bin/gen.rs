@@ -111,8 +111,8 @@ fn main() -> anyhow::Result<()> {
                 std::iter::once("分层").chain(
                     posts
                         .values()
-                        .map(|p: &gen::post::Post| p.metadata.title.as_str()),
-                ),
+                        .map(|p| p.metadata.title.as_str())
+                ).chain(posts_vec.iter().flat_map(|p| p.metadata.tags.iter().map(String::as_str))),
                 f,
             )?;
         }
