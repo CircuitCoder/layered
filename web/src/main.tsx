@@ -312,6 +312,7 @@ async function transitionRender(
   let title: string = "分层 - Layered";
   let backlink: string | null = null;
   let desc: string = "喵喵的博客";
+  let img: string | null = null;
 
   // Render list
   // TODO: hide list during debounce, match with transition duration
@@ -332,6 +333,7 @@ async function transitionRender(
       rendered = new Post(post, register);
       desc =
         post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
+      img = post.metadata.img;
     }
   } else if (state.ty === "Tag") {
     const tag = state.tag;
@@ -404,6 +406,7 @@ async function transitionRender(
     editMeta("og:title", title);
     editMeta("og:url", backlink);
     editMeta("og:description", desc);
+    editMeta("og:image", img);
   } else {
     register!(":title", title);
     if (backlink) register!(":backlink", title);
@@ -411,6 +414,7 @@ async function transitionRender(
     register!(":og:url", import.meta.env.VITE_BASE + path);
     register!(":og:type", "website");
     register!(":og:description", desc);
+    if (img) register!(":og:image", img);
   }
 }
 

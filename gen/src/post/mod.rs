@@ -35,6 +35,7 @@ pub struct Metadata {
     pub hidden: bool,
     pub wip: bool,
     pub legacy: bool,
+    pub img: Option<String>,
 }
 
 // Fetch history based on git repo
@@ -100,6 +101,14 @@ pub fn file_name_to_id(filename: &str) -> anyhow::Result<&str> {
     Ok(filename_match.get(1).unwrap().as_str())
 }
 
+fn find_image(html: &str) -> Option<String> {
+    use scraper::*;
+    let parsed = Html::parse_fragment(html);
+    let selector = Selector::parse("img.preview").unwrap();
+    let found = parsed.select(&selector).next()?;
+    found.value().attr("src").map(str::to_string)
+}
+
 fn serialize_single(
     filename: &str,
     pre: ParsedMarkdown,
@@ -127,6 +136,7 @@ fn serialize_single(
     let update_time = pre.metadata.force_update_time.or(reduced_update_time);
 
     let title_outline: TitleResp = crate::font::parse_title(&pre.metadata.title, title_font)?;
+    let img = find_image(&pre.html);
 
     Ok(Post {
         html: pre.html,
@@ -141,6 +151,7 @@ fn serialize_single(
             publish_time,
             update_time,
             title_outline,
+            img,
         },
     })
 }
