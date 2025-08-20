@@ -39,11 +39,10 @@ $$
 实现很重要的一个属性是希望尽量在核心“局部”可以实现这个排序，不需要通过总线上或者其他信道上和别的核心进行访存之外的通信。很遗憾，SeqCst 的语义并不能完全在局部完成，需要的硬件功能集合包括：
 
 1. 所有 SeqCst 操作会等待同一线程 sequenced-before 的所有操作完成，然后才开始本操作。等待本操作完成之后，才开始 sequenced-after 的其他操作。这里“完成”指的是全局可见之后，在硬件实现上需要核心发出的写操作对应的回应蕴含它已经全局可见了。
-2. Acquire / Release 操作也要进行类似的等待。不过
-    - Acquire 只阻止后面的请求。如果这是一个 ld/AMO，等待条件是带有 Acquire 的访存结束。如果是 Fence，等待条件是 Fence 之前所有访存结束。
-    - Release 只等待之前的请求。如果这是一个 st/AMO，阻止的请求是带有 Release 的访存本身。如果是 Fence，阻止的请求是之后所有访存。
+  - Acquire / Release 操作也要进行类似的等待。不过 Acquire 只阻止 $R \rightarrow *$，Release 只阻止 $* \rightarrow W$。
+  - 此外，Acquire / Release AMO 弱于 Relaxed AMO + Acquire / Release Fence，原因是 Acquire / Release AMO 只控制其绑定的 AMO 操作和其他访存操作的顺序。
 <!-- - 额外的，需要 SeqCst st/AMO 操作的全局可见顺序一致。<sup>[2]</sup> -->
-3. 额外的，所有 SeqCst 操作结束时必须保证，该操作读取到的值必须全局可见。（对于 Fence，本线程之前所有 Load / AMO 读到的值都全局可见）。<sup>[2]</sup>
+2. 额外的，所有 SeqCst 操作结束时必须保证，该操作读取到的值必须全局可见。（对于 Fence，本线程之前所有 Load / AMO 读到的值都全局可见）。<sup>[2]</sup>
 
 可以画一张图，横轴方向 Wall clock，每个线程一条时间轴，Fence 标记为一个点，其他访存标记为核心视角开始执行到收到回应结束执行的时刻。
 
