@@ -508,7 +508,9 @@ nav {
   display: flex;
   align-items: center;;
   color: var(--color-fg-secondary);
+  overflow: hidden;
 }
+
 .tag-header svg {
   height: var(--header-size);
   width: var(--header-size);
