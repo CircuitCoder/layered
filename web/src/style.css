@@ -460,7 +460,7 @@ nav {
   top: 0;
   bottom: 0;
   left: 0;
-  right: 0;
+  right: -0.5px; /* This is to make sure the surrogate text don't wrap on the line. */
   display: inline-block;
   font-size: calc(var(--size) * 1px);
   line-height: 40px;
