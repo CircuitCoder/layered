@@ -61,6 +61,15 @@ where
         let oid = oid?;
         log::debug!("Revwalk: {}", oid);
         let commit = repo.find_commit(oid)?;
+        let msg = commit.message();
+        if let Some(msg) = msg {
+            if msg.contains("[skip time]") {
+                log::debug!("Skipping due to [skip time]");
+                continue;
+            }
+        } else {
+            log::warn!("Unparsable commit message at {}", oid);
+        }
         let time_raw = commit.author().when();
         let timezone = chrono::FixedOffset::east_opt(time_raw.offset_minutes() * 60).unwrap();
         let time = timezone
