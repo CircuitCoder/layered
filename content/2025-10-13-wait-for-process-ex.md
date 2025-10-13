@@ -3,7 +3,7 @@ title: Advanced waiting for processes on Windows for showing off on Steam
 tags: 灵车
 ---
 
-It's well known that you can add external program on Steam to friendly remind your friend that you are doing hard work™ and maybe they should too.
+It's well known that you can add external programs on Steam to friendly remind your friends that you are doing hard work™ and maybe they should too.
 
 <figure>
   <img src="https://layered-assets.thu.fail/2025-10-13-steam-vscode.png">
@@ -12,7 +12,7 @@ It's well known that you can add external program on Steam to friendly remind yo
 
 But most windows programs have quirks that makes this method of showing off not exactly reliable:
 1. Programs often auto-updates by calling an updater, exits, and waits for the updater to re-execute itself.
-2. Sometime processes wants to be singleton so they try to find existing running instance and exits immediately upon seeing one.
+2. Sometimes processes want to be singleton so they try to find existing running instance and exits immediately upon seeing one.
 3. Some games uses launchers, and Steam lose track of the process once the launcher exits.
 
 VSCode does 1 & 2, and most Galgames would require some form of 3 (and also 2).
@@ -35,7 +35,7 @@ C:\Run\Your\Launcher.exe
 powershell -Command "while ($true) { Start-Sleep -Seconds 5; $procs = Get-Process | Where-Object { $_.Path -eq 'C:\Your\Program.exe' }; if ($procs.Count -eq 0) { break }; $procs[0].WaitForExit() }"
 ```
 
-Unfortunately I did not figure out how to do multi-line literal in argument place with batch scripts, so this abomination would need to do.
+Unfortunately I did not figure out how to do multi-line literal in argument place with batch scripts, so this abomination will have to do.
 
 Finally, don't forget to set the library page name and background.
 
