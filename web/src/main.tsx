@@ -553,7 +553,7 @@ namespace ListCommon {
   export function getTitleSpace(): number {
     // Get available space
     const viewportWidth = window.innerWidth;
-    if (viewportWidth > 500) return Math.max(viewportWidth - 120, 400);
+    if (viewportWidth > 500) return Math.min(viewportWidth - 120, 500);
     else return viewportWidth - 80;
   }
 
