@@ -902,8 +902,10 @@ ol, ul {
 
 figure {
   padding: 20px 30px;
-  margin: 10px 0;
+  margin: 10px auto;
   background: var(--color-bg-block);
+  max-width: 100%;
+  width: max-content;
 
   @media (max-width: 500px) {
     padding: 10px 15px;
