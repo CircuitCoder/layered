@@ -33,7 +33,7 @@ void threadB() {
 }
 ```
 
-Observing `p == q` inside foo does not break any lifetime or memory order restriction, and does not involve any UB (unlike an unsynchronized racing condition). Notice that crucially, reading the value of `p` in `void threadA()` (in order to store it into `AtoB`) only depends on the operations caused by the `new` operator, thus remains unordered with the assignment `*p = 1;`.
+Observing `p == q` inside foo does not break any lifetime or memory order restriction, and does not involve any UB (unlike an unsynchronized racing condition). Notice that crucially, reading the value of `p` in `void threadA()` (in order to store it into `AtoB`) only depends on the operations caused by the `new` operator, thus remains unordered with the assignment `*p = 123`.
 
 Even assuming MCA, the only "happens-after" chains we can deduce, in the case that `p == q`, are:
 
