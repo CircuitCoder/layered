@@ -61,3 +61,24 @@ export class Debouncer {
     if (cur !== this.epoch) await Blackhole;
   }
 }
+
+export function sliceDesc(plain: string, length: number = 150): string {
+  // Generate description, breaks at white space (or after non-ASCII chars).
+  // Each ASCII char counts as 1, non-ASCII as 2.
+
+  let desc = "";
+  let cnt = 0;
+  let lastCanBreak = false;
+  for (const ch of plain) {
+    if(cnt >= length && (lastCanBreak || ch === ' ' || ch === '\n' || ch === '\t')) {
+      return desc + '...';
+    }
+    const len = ch.charCodeAt(0) < 128 ? 1 : 2;
+    cnt += len;
+    desc += ch;
+    lastCanBreak = ch.charCodeAt(0) >= 128;
+  }
+
+  // No truncation
+  return desc;
+}

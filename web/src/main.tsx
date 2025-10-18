@@ -8,6 +8,7 @@ import {
   getLinkInAnscenstor,
   randomWithin,
   Debouncer,
+  sliceDesc,
 } from "./utils";
 import {
   render as renderLine,
@@ -56,8 +57,6 @@ type State =
   | {
       ty: "NotFound";
     };
-
-const AUTO_POST_PREVIEW_LENGTH = 100;
 
 interface RenderedEntity {
   element: HTMLElement;
@@ -331,8 +330,7 @@ async function transitionRender(
       title = post.metadata.title + " | 分层 - Layered";
       backlink = import.meta.env.VITE_BASE + "/post/" + slug;
       rendered = new Post(post, register);
-      desc =
-        post.plain.length > 300 ? post.plain.slice(0, 300) + "..." : post.plain;
+      desc = sliceDesc(post.plain, 300);
       img = post.metadata.img;
     }
   } else if (state.ty === "Tag") {
@@ -639,10 +637,7 @@ class List implements RenderedEntity {
     if (SSR) register!(":prerendered", "list");
 
     const entries = posts.map((p) => {
-      const preview =
-        p.plain.length > AUTO_POST_PREVIEW_LENGTH
-          ? p.plain.substring(0, AUTO_POST_PREVIEW_LENGTH) + "..."
-          : p.plain;
+      const preview = sliceDesc(p.plain);
       return ListCommon.renderEntry(p.metadata, [
         <div class="entry-preview">{preview}</div>,
       ]);
