@@ -641,7 +641,8 @@ nav {
 .post-content {
   font-size: 16px;
   line-height: 1.75;
-  letter-spacing: 0.03125em;
+  text-autospace: normal;
+  text-align: justify;
 }
 
 .post-banner {
@@ -836,7 +837,7 @@ blockquote {
       border-left: rgba(0,0,0,.5) 10px solid;
     }
   }
-  margin: 0;
+  margin: 10px 0;
   padding: 0px 20px 0 30px;
   border-radius: 8px;
   box-shadow: 0 2px 3px rgba(0,0,0,.3);
@@ -846,6 +847,7 @@ blockquote {
 blockquote:has(> ul) {
   padding-left: 5px;
 }
+
 
 pre:has(code) {
   background: #002b36;
@@ -942,7 +944,11 @@ figcaption {
 details {
   margin: 10px 0;
   position: relative;
-  padding: 0 0 10px 20px;
+  padding: 0 0 0 20px;
+
+  &[open] {
+    padding-bottom: 10px;
+  }
 
   &[open]::before {
     content: "";
