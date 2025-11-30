@@ -132,9 +132,11 @@ export async function bootstrap(
 ) {
   if (!SSR) {
     if (window.ViewTimeline)
-      scrollTimeline = new window.ViewTimeline({ subject: document.getElementById("scroll-subject"), axis: "block" });
-    else
-      window.addEventListener("scroll", scroll);
+      scrollTimeline = new window.ViewTimeline({
+        subject: document.getElementById("scroll-subject"),
+        axis: "block",
+      });
+    else window.addEventListener("scroll", scroll);
   }
 
   applyStatic(register);
@@ -1042,7 +1044,7 @@ class Post implements RenderedEntity {
 
   async exit() {
     const el = this.element;
-    for(const anim of this.scrollAnimations) {
+    for (const anim of this.scrollAnimations) {
       // Pausing the animation alone is not enough, because current in Chrome the pausing is
       // implemented asynchronously, and we don't know when we can reset the scroll.
 
@@ -1162,6 +1164,25 @@ class Post implements RenderedEntity {
           },
         );
       }
+
+      // Finally, don't forget the fill and stroke of ref
+      const refStyles = window.getComputedStyle(ref);
+      title.animate(
+        [
+          {
+            fill: refStyles["fill"],
+            stroke: refStyles["stroke"],
+          },
+          {
+            fill: "var(--color-fg)",
+            stroke: "transparent",
+          },
+        ],
+        {
+          duration: 500,
+          easing: "ease",
+        },
+      );
     }
   }
 
@@ -1178,9 +1199,14 @@ class Post implements RenderedEntity {
       const dirY = parseFloat(stroke.getAttribute("data-dir-y")!);
 
       // Dot product with the canonical entry direction normalize((5, 1))
-      const entryScale = dirX * CANONIAL_ENTRY_DIR_X + dirY * CANONIAL_ENTRY_DIR_Y;
-      const entryX = dirX * entryScale * 100 + randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
-      const entryY = dirY * entryScale * 100 + randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
+      const entryScale =
+        dirX * CANONIAL_ENTRY_DIR_X + dirY * CANONIAL_ENTRY_DIR_Y;
+      const entryX =
+        dirX * entryScale * 100 +
+        randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
+      const entryY =
+        dirY * entryScale * 100 +
+        randomWithin(-ENTRY_RANDOMIZATION, ENTRY_RANDOMIZATION);
 
       const offsetX = entry ? -entryX : entryX;
       const offsetY = entry ? -entryY : entryY;
@@ -1213,23 +1239,28 @@ class Post implements RenderedEntity {
   }
 
   private enableTitleScrollAnimation(title: SVGElement) {
-    const grps = Array.from(title.querySelectorAll("g.var-group")) as SVGGElement[];
-    this.scrollAnimations = grps.map((grp) => (
-      grp.animate([
-        {},
-        {
-          opacity: 'calc(1 - 4 * (var(--var-scale) - 0.5))',
-          filter: 'blur(calc(1px * 40 * (var(--var-scale) - 0.7)))',
-          transform: `translate(
+    const grps = Array.from(
+      title.querySelectorAll("g.var-group"),
+    ) as SVGGElement[];
+    this.scrollAnimations = grps.map((grp) =>
+      grp.animate(
+        [
+          {},
+          {
+            opacity: "calc(1 - 4 * (var(--var-scale) - 0.5))",
+            filter: "blur(calc(1px * 40 * (var(--var-scale) - 0.7)))",
+            transform: `translate(
             calc((var(--var-offset-x, 0px) + 1px * var(--grp-line-xdiff, var(--grp-xdiff))) * var(--size)),
             calc(var(--var-offset-y, 0px) * var(--size) - 100vh * (var(--var-scale) - 0.5) / 2)
-          )`
+          )`,
+          },
+        ],
+        {
+          timeline: scrollTimeline,
+          fill: "both",
         },
-      ], {
-        timeline: scrollTimeline,
-        fill: "both",
-      })
-    ));
+      ),
+    );
   }
 }
 
@@ -1450,6 +1481,6 @@ if (!SSR) document.addEventListener("DOMContentLoaded", () => bootstrap());
 
 declare global {
   interface Window {
-    ViewTimeline: any
+    ViewTimeline: any;
   }
 }

@@ -16,7 +16,15 @@ export function getLinkInAnscenstor(e: EventTarget | null): string | null {
 }
 
 export function randomWithin(a: number, b: number): number {
-  return a + Math.random() * (b - a);
+  // return a + Math.random() * (b - a);
+
+  // Instead, we generate a random point in a unit circle, project onto X-axis, and scale to the desired interval.
+
+  const theta = Math.random() * Math.PI * 2;
+  const r = Math.sqrt(Math.random());
+  const dx = Math.cos(theta) * r;
+
+  return (a + b) / 2 + (dx * (a - b)) / 2;
 }
 
 export class SemiReactive<T> {
@@ -70,8 +78,11 @@ export function sliceDesc(plain: string, length: number = 150): string {
   let cnt = 0;
   let lastCanBreak = false;
   for (const ch of plain) {
-    if(cnt >= length && (lastCanBreak || ch === ' ' || ch === '\n' || ch === '\t')) {
-      return desc + '...';
+    if (
+      cnt >= length &&
+      (lastCanBreak || ch === " " || ch === "\n" || ch === "\t")
+    ) {
+      return desc + "...";
     }
     const len = ch.charCodeAt(0) < 128 ? 1 : 2;
     cnt += len;

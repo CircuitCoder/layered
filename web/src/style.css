@@ -39,6 +39,12 @@
   initial-value: 0;
 }
 
+@property --hover-multiplier {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0;
+}
+
 /* Resets */
 
 * {
@@ -97,6 +103,7 @@ a {
   /* Default for light stuff */
   --color-bg: #FFF;
   --color-fg: #000;
+  --color-fg-transparent: rgba(0, 0, 0, 0.3);
   --color-fg-secondary: oklab(0.3 0 0);
   --color-fg-icon: oklab(0.7 0 0);
   --color-bg-block: rgba(0,0,0,.05);
@@ -111,6 +118,7 @@ a {
     &:not(.light) {
       --color-bg: #2e2f33;
       --color-fg: oklab(0.95 0 0);
+      --color-fg-transparent: rgba(255, 255, 255, 0.2);
       --color-fg-secondary: oklab(0.8 0 0);
       --color-fg-icon: oklab(0.6 0 0);
       --color-bg-block: rgba(0,0,0,.2);
@@ -368,6 +376,8 @@ nav {
   height: calc(var(--line-cnt) * var(--line-height));
 
   fill: var(--color-fg);
+  stroke: transparent;
+  stroke-width: 20px;
 
   & .line {
     transform:
@@ -380,7 +390,10 @@ nav {
      * Remember to sync the following declaration to .post-title,
      * .post-metadata-aux .title, and also applyTitleVariation !
      */
-    transform: translateX(calc(1px * var(--grp-line-xdiff, var(--grp-xdiff)) * var(--size)));
+    transform: translate(
+      calc(1px * var(--grp-line-xdiff, var(--grp-xdiff)) * var(--size) + var(--hover-y) * var(--hover-multiplier)),
+      calc(var(--hover-y) * var(--hover-multiplier))
+    );
   }
 
   & .glyph {
@@ -445,9 +458,26 @@ nav {
   --size: 24;
   --baseline-y: 30px;
   --line-height: 40px;
+  --hover-multiplier: 0;
   margin-bottom: 10px;
   position: relative;
   width: min-content;
+
+  &:hover {
+    --hover-multiplier: 2px;
+    & .title {
+      fill: var(--color-fg-transparent);
+      stroke: var(--color-fg);
+    }
+  }
+
+  .title .var-group {
+    transition: transform .2s ease;
+  }
+
+  .title {
+    transition: fill .2s ease, stroke .2s ease;
+  }
 }
 
 .entry .surrogate-title {

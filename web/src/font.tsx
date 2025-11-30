@@ -1,5 +1,6 @@
 import { TitleResp } from "./typings/TitleResp";
 import { jsxSVG as jsx } from "./jsx";
+import { randomWithin } from "./utils";
 import { GroupResp } from "./typings/GroupResp";
 
 export type RenderDimensions = {
@@ -43,13 +44,20 @@ export function materialize(
             }}
           >
             {chr.components.map((comp) => (
-              <path d={comp[0]} data-dir-x={comp[1][0]} data-dir-y={comp[1][1]}></path>
+              <path
+                d={comp[0]}
+                data-dir-x={comp[1][0]}
+                data-dir-y={comp[1][1]}
+              ></path>
             ))}
           </g>
         );
         grpAccum += chr.hadv;
         return glyph;
       });
+
+      const hoverX = randomWithin(-1, 1);
+      const hoverY = randomWithin(-1, 1);
 
       const grpEl = (
         <g
@@ -60,6 +68,8 @@ export function materialize(
             "--grp-line-xdiff": (lineAccum / dim.unitsPerEm).toString(),
             "--grp-width": (grp.hadv / dim.unitsPerEm).toString(),
             "--grp-xdiff": (globalXdiff / dim.unitsPerEm).toString(),
+            "--hover-x": hoverX,
+            "--hover-y": hoverY,
           }}
           data-text={grp.text}
         >
