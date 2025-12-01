@@ -17,7 +17,7 @@ All of these depends on the nice behavior of FIFO's consecutive memory accesses.
 
 ## Flushing FIFO
 
-Consider a FIFO that allows for a single-cycle flusing operation (clearing all contents). These kind of queues are frequently used in pipelines with speculative executions, where the entire pipeline may needs to be discarded (quickly).
+Consider a FIFO that allows for a single-cycle flushing operation (clearing all contents). These kind of queues are frequently used in pipelines with speculative executions, where the entire pipeline needs to be discarded (quickly).
 
 This means at least one of the head and tail pointers may snap to a place that does not depend on the previous value, most likely by reseting both pointer into their initial value, which can break the assumption of continous SRAM access.
 
