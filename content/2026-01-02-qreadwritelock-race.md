@@ -118,6 +118,8 @@ if (lock.state.load(std::memory_order_relaxed) != cur_state) { // (2)
 heavy->lock(exclusive); // (3)
 ```
 
+We've now arrived at the implementation in v6.10, the version where we encountered the bug.
+
 ## The race
 
 ... Unfortunately, there is still a hidden race condition here. To see why, we have to first look into how are the "heavy" locks allocated and deallocated.
