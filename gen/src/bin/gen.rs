@@ -136,7 +136,7 @@ fn main() -> anyhow::Result<()> {
                     continue;
                 }
 
-                all_paths.extend(ev.event.paths.into_iter().filter(|p| p.is_file()));
+                all_paths.extend(ev.event.paths.into_iter().filter(|p| !p.exists() || p.is_file()));
             }
 
             let updates = gen::post::refresh_paths(&args.posts, all_paths.iter(), &font)?;
