@@ -22,7 +22,8 @@
     "noUncheckedSideEffectImports": true,
     "jsx": "react",
     "jsxFactory": "jsx",
-    "jsxFragmentFactory": "Fragment"
+    "jsxFragmentFactory": "Fragment",
+    "plugins": [{ "name": "typescript-yaml-plugin" }]
   },
   "include": ["src", "./prerender.ts"]
 }

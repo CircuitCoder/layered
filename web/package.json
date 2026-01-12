@@ -13,10 +13,14 @@
     "full": "npm run build:client && npm run build:server && npm run prerender && npm run patch:render && ./compress.sh"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.13.1",
     "prettier": "^3.5.1",
+    "tosource": "^2.0.0-alpha.3",
     "typescript": "~5.6.2",
-    "vite": "^6.0.5"
+    "typescript-yaml-plugin": "^1.0.11",
+    "vite": "^6.0.5",
+    "yaml": "^2.8.2"
   },
   "dependencies": {
     "@js-temporal/polyfill": "^0.4.4",
