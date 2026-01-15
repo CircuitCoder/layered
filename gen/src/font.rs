@@ -11,7 +11,7 @@ use serde::Serialize;
 
 use crate::direction;
 
-#[derive(Serialize,  PartialEq, Clone, Debug, ts_rs::TS)]
+#[derive(Serialize, PartialEq, Clone, Debug, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "ty", content = "spec")]

@@ -1,6 +1,4 @@
-use lyon_algorithms::{
-    measure::{PathMeasurements, SampleType},
-};
+use lyon_algorithms::measure::{PathMeasurements, SampleType};
 use lyon_path::Path;
 
 trait Integration {
@@ -40,27 +38,39 @@ struct NA3Ey2Integration;
 struct A4ExyIntegration;
 
 impl Integration for AreaIntegration {
-    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 { x * dy }
+    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 {
+        x * dy
+    }
 }
 
 impl Integration for A2ExIntegration {
-    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 { x * x * dy }
+    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 {
+        x * x * dy
+    }
 }
 
 impl Integration for NA2EyIntegration {
-    fn eval(&mut self, _x: f32, y: f32, dx: f32, _dy: f32) -> f32 { y * y * dx }
+    fn eval(&mut self, _x: f32, y: f32, dx: f32, _dy: f32) -> f32 {
+        y * y * dx
+    }
 }
 
 impl Integration for A3Ex2Integration {
-    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 { x * x * x * dy }
+    fn eval(&mut self, x: f32, _y: f32, _dx: f32, dy: f32) -> f32 {
+        x * x * x * dy
+    }
 }
 
 impl Integration for NA3Ey2Integration {
-    fn eval(&mut self, _x: f32, y: f32, dx: f32, _dy: f32) -> f32 { y * y * y * dx }
+    fn eval(&mut self, _x: f32, y: f32, dx: f32, _dy: f32) -> f32 {
+        y * y * y * dx
+    }
 }
 
 impl Integration for A4ExyIntegration {
-    fn eval(&mut self, x: f32, y: f32, dx: f32, dy: f32) -> f32 { x * x * y * dy - x * y * y * dx }
+    fn eval(&mut self, x: f32, y: f32, dx: f32, dy: f32) -> f32 {
+        x * x * y * dy - x * y * y * dx
+    }
 }
 
 struct CovMat {
@@ -76,7 +86,7 @@ fn compute_covmat(p: &Path, eps: f32) -> CovMat {
     let ex2 = integrate_over(A3Ex2Integration, p, eps) / area / 3f32;
     let ey2 = -integrate_over(NA3Ey2Integration, p, eps) / area / 3f32;
     let exy = integrate_over(A4ExyIntegration, p, eps) / area / 4f32;
-    
+
     let var_x = ex2 - ex * ex;
     let var_y = ey2 - ey * ey;
     let cov_xy = exy - ex * ey;

@@ -39,7 +39,7 @@ fn main() -> anyhow::Result<()> {
         let converted: anyhow::Result<Vec<_>> = input
             .trim()
             .chars()
-            .map(|c| gen::font::parse_char(c, &font))
+            .map(|c| generator::font::parse_char(c, &font))
             .collect();
         let converted = converted?;
         println!("{}", serde_json::to_string_pretty(&converted)?);

@@ -1,7 +1,7 @@
 use std::{collections::HashSet, fs::File, io::Read, path::PathBuf};
 
 use clap::Parser;
-use gen::feed::FeedConfig;
+use generator::feed::FeedConfig;
 use notify_debouncer_full::notify;
 use ttf_parser::Tag;
 
@@ -71,7 +71,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     log::info!("Loading posts from {}", args.posts.display());
-    let mut posts = gen::post::readdir(&args.posts, &font)?;
+    let mut posts = generator::post::readdir(&args.posts, &font)?;
 
     // Enable watch mode
     let watch_rx = if args.watch {
@@ -99,20 +99,23 @@ fn main() -> anyhow::Result<()> {
             let dst = args.feed.as_ref().unwrap();
             log::info!("Generating feed to: {}", dst.display());
 
-            let feed = gen::feed::feed(&f, posts_vec.iter().map(|e| *e), args.feed_summary_len)?;
+            let feed =
+                generator::feed::feed(&f, posts_vec.iter().map(|e| *e), args.feed_summary_len)?;
             feed.write_to(File::create(dst)?)?;
         }
 
         // TODO: check if subset changed
         if let Some(ref f) = args.subset_font {
             log::info!("Generating subset font to: {}", f.display());
-            gen::font::generate_subset_to(
+            generator::font::generate_subset_to(
                 &args.title_font,
-                std::iter::once("分层").chain(
-                    posts
-                        .values()
-                        .map(|p| p.metadata.title.as_str())
-                ).chain(posts_vec.iter().flat_map(|p| p.metadata.tags.iter().map(String::as_str))),
+                std::iter::once("分层")
+                    .chain(posts.values().map(|p| p.metadata.title.as_str()))
+                    .chain(
+                        posts_vec
+                            .iter()
+                            .flat_map(|p| p.metadata.tags.iter().map(String::as_str)),
+                    ),
                 f,
             )?;
         }
@@ -136,10 +139,15 @@ fn main() -> anyhow::Result<()> {
                     continue;
                 }
 
-                all_paths.extend(ev.event.paths.into_iter().filter(|p| !p.exists() || p.is_file()));
+                all_paths.extend(
+                    ev.event
+                        .paths
+                        .into_iter()
+                        .filter(|p| !p.exists() || p.is_file()),
+                );
             }
 
-            let updates = gen::post::refresh_paths(&args.posts, all_paths.iter(), &font)?;
+            let updates = generator::post::refresh_paths(&args.posts, all_paths.iter(), &font)?;
             for (filename, post) in updates {
                 if let Some(post) = post {
                     log::info!("Update: {}", filename);
