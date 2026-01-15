@@ -25,6 +25,7 @@ type DT = chrono::DateTime<chrono::FixedOffset>;
 #[serde(rename_all = "lowercase")]
 pub struct Metadata {
     pub id: String,
+    pub lang: String,
     pub title: String,
     pub tags: Vec<String>,
     #[ts(type = "string")]
@@ -39,13 +40,16 @@ pub struct Metadata {
 }
 
 static FILENAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.md").unwrap());
+    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.md").unwrap());
 
-pub fn file_name_to_id(filename: &str) -> anyhow::Result<&str> {
+pub fn file_name_to_id_ang_lang(filename: &str) -> anyhow::Result<(&str, &str)> {
     let filename_match = FILENAME_RE
         .captures(&filename)
         .ok_or_else(|| anyhow::anyhow!("Unable to parse filename: {}", filename))?;
-    Ok(filename_match.get(1).unwrap().as_str())
+    Ok((
+        filename_match.get(1).unwrap().as_str(),
+        filename_match.get(2).unwrap().as_str(),
+    ))
 }
 
 fn find_image(html: &str) -> Option<String> {
@@ -59,22 +63,22 @@ fn find_image(html: &str) -> Option<String> {
 fn serialize_single(
     filename: &str,
     pre: ParsedMarkdown,
-    creation: Option<(DT, Oid)>,
-    update: Option<(DT, Oid)>,
+    creation: Option<DT>,
+    update: Option<DT>,
     title_font: &ttf_parser::Face,
 ) -> anyhow::Result<Post> {
     log::info!("Processing {}", filename);
     let publish_time = pre
         .metadata
         .force_publish_time
-        .or(creation.map(|e| e.0))
+        .or(creation)
         .unwrap_or_else(|| {
             log::warn!("Unpublished post: {}", filename);
             chrono::Local::now().fixed_offset()
         });
     // TODO: check filename for publish time, check if they match
-    let reduced_update_time = update.and_then(|(t, id)| {
-        if id == creation.unwrap().1 {
+    let reduced_update_time = update.and_then(|t| {
+        if t == creation.unwrap() {
             None
         } else {
             Some(t)
@@ -84,12 +88,14 @@ fn serialize_single(
 
     let title_outline: TitleResp = crate::font::parse_title(&pre.metadata.title, title_font)?;
     let img = find_image(&pre.html);
+    let (id, lang) = file_name_to_id_ang_lang(filename)?;
 
     Ok(Post {
         html: pre.html,
         plain: pre.plain,
         metadata: Metadata {
-            id: file_name_to_id(filename)?.to_owned(),
+            id: id.to_owned(),
+            lang: lang.to_owned(),
             title: pre.metadata.title,
             tags: pre.metadata.tags,
             hidden: pre.metadata.hidden,
@@ -122,8 +128,8 @@ impl LatestFile {
         serialize_single(
             filename,
             self.content,
-            self.created.map(|t| (t, Oid::zero())),
-            self.updated.map(|t| (t, Oid::zero())),
+            self.created,
+            self.updated,
             title_font,
         )
     }
@@ -302,12 +308,6 @@ fn revwalk_update_store(
         // Handles new and updated files
         for delta in diff.deltas() {
             let status = delta.status();
-            log::info!(
-                "Delta: {:?} {:?} -> {:?}",
-                status,
-                delta.old_file().path(),
-                delta.new_file().path()
-            );
 
             // Check if the file landed in the expected folder
             let new_path = delta.new_file().path().unwrap();
@@ -353,7 +353,6 @@ fn revwalk_update_store(
                     is_newfile = true;
                 } else {
                     let old_filename = old_path.file_name().unwrap().to_str().unwrap();
-                    log::info!("Detect rename: {} -> {}", old_filename, filename);
                     derived_rename_state.push_rename(old_filename, filename);
                 }
             }

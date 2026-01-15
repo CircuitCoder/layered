@@ -139,6 +139,7 @@ fn main() -> anyhow::Result<()> {
                     continue;
                 }
 
+                has_update = true;
                 all_paths.extend(
                     ev.event
                         .paths
@@ -146,7 +147,11 @@ fn main() -> anyhow::Result<()> {
                         .filter(|p| !p.exists() || p.is_file()),
                 );
             }
+            if !has_update {
+                continue;
+            }
 
+            let mut has_update = false;
             let updates = generator::post::refresh_paths(&args.posts, all_paths.iter(), &font)?;
             for (filename, post) in updates {
                 if let Some(post) = post {
