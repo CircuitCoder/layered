@@ -42,7 +42,7 @@ pub struct Metadata {
 static FILENAME_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.md").unwrap());
 
-pub fn file_name_to_id_ang_lang(filename: &str) -> anyhow::Result<(&str, &str)> {
+pub fn parse_filename(filename: &str) -> anyhow::Result<(&str, &str)> {
     let filename_match = FILENAME_RE
         .captures(&filename)
         .ok_or_else(|| anyhow::anyhow!("Unable to parse filename: {}", filename))?;
@@ -88,7 +88,7 @@ fn serialize_single(
 
     let title_outline: TitleResp = crate::font::parse_title(&pre.metadata.title, title_font)?;
     let img = find_image(&pre.html);
-    let (id, lang) = file_name_to_id_ang_lang(filename)?;
+    let (id, lang) = parse_filename(filename)?;
 
     Ok(Post {
         html: pre.html,
@@ -392,15 +392,19 @@ pub fn readdir<P: AsRef<Path>>(
 
     let timed = revwalk_update_store(&dir, parsed)?;
 
-    timed
+    let collected = timed
         .into_par_iter()
-        .map(
-            |(filename, latest_file)| -> anyhow::Result<(String, Post)> {
-                let serialized = latest_file.serialize(&filename, title_font)?;
-                Ok((filename, serialized))
+        .filter_map(
+            |(filename, latest_file)| -> Option<(String, Post)> {
+                let Ok(serialized) = latest_file.serialize(&filename, title_font) else {
+                    log::warn!("Failed to serialize {}, skipping", filename);
+                    return None;
+                };
+                Some((filename, serialized))
             },
         )
-        .collect()
+        .collect();
+    Ok(collected)
 }
 
 pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
@@ -447,10 +451,13 @@ pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
     let mut collected: HashMap<_, _> = timed
         .into_par_iter()
         .map(|(filename, latest_file)| {
-            let serialized = latest_file.serialize(&filename, title_font)?;
-            Ok((filename, Some(serialized)))
+            let Ok(serialized) = latest_file.serialize(&filename, title_font) else {
+                log::warn!("Failed to serialize {}, skipping", filename);
+                return (filename, None)
+            };
+            (filename, Some(serialized))
         })
-        .collect::<anyhow::Result<_>>()?;
+        .collect();
 
     for s in skipped {
         collected.insert(s, None);
