@@ -74,8 +74,12 @@ async function work() {
   // Render all posts
   for (const post of await fs.readdir("../content")) {
     const filename = path.basename(post, ".md");
-    const [_, slug] = filename.match(/^\d{4}-\d{2}-\d{2}-(.*)$/)!;
-    await renderPath(`/post/${slug}`);
+    try {
+      const [_, slug] = filename.match(/^\d{4}-\d{2}-\d{2}-(.*).(en-US|zh-CN)$/)!;
+      await renderPath(`/post/${slug}`);
+    } catch(e) {
+      console.warn(`Skipping file with unexpected name format: ${post}`);
+    }
   }
 
   // Render all tags
