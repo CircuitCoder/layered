@@ -1012,6 +1012,19 @@ summary {
   font-weight: 300;
 }
 
+.qed {
+  display: flex;
+  justify-content: flex-end;
+
+  &::after {
+    content: "";
+    width: 10px;
+    height: 10px;
+    display: block;
+    background: var(--color-fg);
+  }
+}
+
 /* About */
 .about {
   left: 0;
