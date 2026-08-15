@@ -104,7 +104,7 @@ impl DiagnosticWorld for HtmlInvocation<'_> {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct InternalMetadata {
     #[serde(default)]
     pub hidden: bool,
@@ -194,11 +194,13 @@ impl HtmlInvocation<'_> {
             }
         };
         let introspector = html.introspector().as_ref();
-        let meta = introspector
-            .query_label(Label::new(PicoStr::constant("meta")).unwrap())
-            .map_err(|e| anyhow::anyhow!("failed to find <meta>: {e}"))?;
-        let meta = meta.to_packed::<MetadataElem>().ok_or_else(|| anyhow::anyhow!("Invalid type for <meta>"))?;
-        let meta_parsed: InternalMetadata = serde_json::from_value(serde_json::to_value(&meta.value)?)?;
+        let meta = if let Ok(meta) = introspector.query_label(Label::new(PicoStr::constant("meta")).unwrap()) {
+            let meta = meta.to_packed::<MetadataElem>().ok_or_else(|| anyhow::anyhow!("Invalid type for <meta>"))?;
+            let meta: InternalMetadata = serde_json::from_value(serde_json::to_value(&meta.value)?)?;
+            meta
+        } else {
+            InternalMetadata::default()
+        };
         let title = html.info().title.as_ref().ok_or_else(|| anyhow::anyhow!("Missing title"))?.as_str().to_owned();
         let tags: Vec<String> = html.info().keywords.iter().map(|e| e.as_str().to_owned()).collect();
 
@@ -215,8 +217,8 @@ impl HtmlInvocation<'_> {
         let meta_full = PartialMetadata {
             title,
             tags,
-            hidden: meta_parsed.hidden,
-            wip: meta_parsed.wip,
+            hidden: meta.hidden,
+            wip: meta.wip,
             force_publish_time: None,
             force_update_time: None,
             legacy: false,

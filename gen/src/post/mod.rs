@@ -463,11 +463,13 @@ pub fn readdir<P: AsRef<Path>>(
         .into_par_iter()
         .filter_map(
             |(filename, latest_file)| -> Option<(String, Post)> {
-                let Ok(serialized) = latest_file.serialize(renderer, title_font) else {
-                    log::warn!("Failed to serialize {}, skipping", filename);
-                    return None;
-                };
-                Some((filename, serialized))
+                match latest_file.serialize(renderer, title_font) {
+                    Ok(serialized) => Some((filename, serialized)),
+                    Err(e) => {
+                        log::warn!("Failed to serialize {}, skipping: {e}", filename);
+                        None
+                    }
+                }
             },
         )
         .collect();
@@ -488,11 +490,14 @@ pub fn refresh_paths(
     let collected: HashMap<_, _> = timed
         .into_par_iter()
         .map(|(filename, latest_file)| {
-            let Ok(serialized) = latest_file.serialize(&renderer, title_font) else {
-                log::warn!("Failed to serialize {}, skipping", filename);
-                return (filename, None)
+            let serialized = match latest_file.serialize(&renderer, title_font) {
+                Ok(serialized) => Some(serialized),
+                Err(e) => {
+                    log::warn!("Failed to serialize {}, skipping: {e}", filename);
+                    None
+                }
             };
-            (filename, Some(serialized))
+            (filename, serialized)
         })
         .collect();
     Ok(collected)
