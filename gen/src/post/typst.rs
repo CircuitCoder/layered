@@ -2,7 +2,7 @@ use std::{ops::ControlFlow, path::{Path, PathBuf}};
 
 use serde::Deserialize;
 use typst::{Features, Library, LibraryExt, World, comemo::Track, diag::{FileResult, SourceResult, Warned}, foundations::{Bytes, Content, Datetime, Duration, Label, Output}, introspection::{Introspector, MetadataElem}, model::{Document, LateLinkResolver}, syntax::{FileId, RootedPath, Source, VirtualPath, VirtualRoot::{self, Project}}, text::{Font, FontBook}, utils::{LazyHash, PicoStr}};
-use typst_html::HtmlDocument;
+use typst_html::{HtmlDocument, HtmlNode, HtmlTag};
 use typst_kit::{diagnostics::{DiagnosticWorld, termcolor}, downloader::SystemDownloader, files::{FileStore, FsRoot, SystemFiles}, fonts::FontStore, packages::SystemPackages};
 
 use crate::post::{PartialMetadata, Rendered};
@@ -204,10 +204,18 @@ impl HtmlInvocation<'_> {
         let title = html.info().title.as_ref().ok_or_else(|| anyhow::anyhow!("Missing title"))?.as_str().to_owned();
         let tags: Vec<String> = html.info().keywords.iter().map(|e| e.as_str().to_owned()).collect();
 
-        let root = html.root();
+        let Some(body) = html.root().children.iter().find_map(|n| {
+            if let HtmlNode::Element(ref elem) = *n {
+                (elem.tag == HtmlTag::constant("body")).then(|| elem)
+            } else {
+                None
+            }
+        }) else {
+            anyhow::bail!("Missing <body> element in HTML document");
+        };
         let link_resolver = LateLinkResolver::new(None, introspector);
-        let html = match typst_html::html_in_bundle(root, &typst_html::HtmlOptions::default(), link_resolver.track()) {
-            Ok(html) => html.trim_start_matches("<!DOCTYPE html>").to_owned(),
+        let html = match typst_html::html_in_bundle(body, &typst_html::HtmlOptions::default(), link_resolver.track()) {
+            Ok(html) => html.trim_start_matches("<!DOCTYPE html><body>").trim_end_matches("</body>").to_owned(),
             Err(err) => {
                 typst_kit::diagnostics::emit(&mut term, self, err.iter(), typst_kit::diagnostics::DiagnosticFormat::Human)?;
                 anyhow::bail!("failed to render document to HTML");
