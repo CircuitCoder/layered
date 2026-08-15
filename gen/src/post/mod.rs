@@ -57,7 +57,7 @@ pub struct Rendered {
 }
 
 static FILENAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.(md|typ)").unwrap());
+    LazyLock::new(|| Regex::new(r"^\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.(md|typ)$").unwrap());
 
 enum FileType {
     Markdown,
