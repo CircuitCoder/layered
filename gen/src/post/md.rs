@@ -7,21 +7,7 @@ use syntect::html::{IncludeBackground, append_highlighted_html_for_styled_line};
 use syntect::parsing::{SyntaxReference, SyntaxSet};
 use syntect::util::LinesWithEndings;
 
-pub struct ParsedMarkdown {
-    pub metadata: PartialMetadata,
-    pub html: String,
-    pub plain: String,
-}
-
-pub struct PartialMetadata {
-    pub title: String,
-    pub tags: Vec<String>,
-    pub force_publish_time: Option<chrono::DateTime<chrono::FixedOffset>>,
-    pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
-    pub hidden: bool,
-    pub wip: bool,
-    pub legacy: bool,
-}
+use crate::post::{PartialMetadata, Rendered};
 
 fn highlight_code_html(
     code: &str,
@@ -50,7 +36,7 @@ fn highlight_code_html(
     Ok(output)
 }
 
-pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
+pub fn render(input: &str) -> anyhow::Result<Rendered> {
     let input = input.trim();
 
     // Split frontmatter
@@ -190,7 +176,7 @@ pub fn parse(input: &str) -> anyhow::Result<ParsedMarkdown> {
         }
     }
 
-    Ok(ParsedMarkdown {
+    Ok(Rendered {
         metadata,
         html,
         plain,

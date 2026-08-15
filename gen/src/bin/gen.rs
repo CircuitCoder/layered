@@ -70,8 +70,10 @@ fn main() -> anyhow::Result<()> {
         font.set_variation(Tag::from_bytes(b"wght"), wght).unwrap();
     }
 
+    let mut renderer = generator::post::Renderer::new(args.posts.clone())?;
+
     log::info!("Loading posts from {}", args.posts.display());
-    let mut posts = generator::post::readdir(&args.posts, &font)?;
+    let mut posts = generator::post::readdir(&renderer, &args.posts, &font)?;
 
     // Enable watch mode
     let watch_rx = if args.watch {
@@ -152,7 +154,7 @@ fn main() -> anyhow::Result<()> {
             }
 
             let mut has_update = false;
-            let updates = generator::post::refresh_paths(&args.posts, all_paths.iter(), &font)?;
+            let updates = generator::post::refresh_paths(&mut renderer, &args.posts, all_paths.into_iter(), &font)?;
             for (filename, post) in updates {
                 if let Some(post) = post {
                     log::info!("Update: {}", filename);

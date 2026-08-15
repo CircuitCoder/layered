@@ -1,4 +1,4 @@
-use std::{collections::HashMap, os::unix::prelude::OsStrExt, path::Path, sync::LazyLock};
+use std::{collections::HashMap, path::{Path, PathBuf}, sync::LazyLock};
 
 use chrono::TimeZone;
 use git2::{DiffFindOptions, DiffOptions, Oid, Sort};
@@ -6,9 +6,10 @@ use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use regex::Regex;
 use serde::Serialize;
 
-use crate::{font::TitleResp, post::md::ParsedMarkdown};
+use crate::font::TitleResp;
 
 mod md;
+mod typst;
 
 #[derive(Debug, Serialize, ts_rs::TS)]
 #[ts(export)]
@@ -39,16 +40,50 @@ pub struct Metadata {
     pub img: Option<String>,
 }
 
-static FILENAME_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.md").unwrap());
+pub struct PartialMetadata {
+    pub title: String,
+    pub tags: Vec<String>,
+    pub force_publish_time: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub force_update_time: Option<chrono::DateTime<chrono::FixedOffset>>,
+    pub hidden: bool,
+    pub wip: bool,
+    pub legacy: bool,
+}
 
-pub fn parse_filename(filename: &str) -> anyhow::Result<(&str, &str)> {
+pub struct Rendered {
+    pub metadata: PartialMetadata,
+    pub html: String,
+    pub plain: String,
+}
+
+static FILENAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\d{4}-\d{2}-\d{2}-(.*)\.(en-US|zh-CN)\.(md|typ)").unwrap());
+
+enum FileType {
+    Markdown,
+    Typst,
+}
+
+impl TryFrom<&str> for FileType {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "md" => Ok(FileType::Markdown),
+            "typ" => Ok(FileType::Typst),
+            _ => Err(anyhow::anyhow!("Unknown file type: {}", value)),
+        }
+    }
+}
+
+fn parse_filename(filename: &str) -> anyhow::Result<(&str, &str, FileType)> {
     let filename_match = FILENAME_RE
         .captures(&filename)
         .ok_or_else(|| anyhow::anyhow!("Unable to parse filename: {}", filename))?;
     Ok((
         filename_match.get(1).unwrap().as_str(),
         filename_match.get(2).unwrap().as_str(),
+        filename_match.get(3).unwrap().as_str().try_into()?
     ))
 }
 
@@ -61,13 +96,17 @@ fn find_image(html: &str) -> Option<String> {
 }
 
 fn serialize_single(
-    filename: &str,
-    pre: ParsedMarkdown,
+    renderer: &Renderer,
+    path: &Path,
     creation: Option<DT>,
     update: Option<DT>,
     title_font: &ttf_parser::Face,
 ) -> anyhow::Result<Post> {
+    let filename = path.file_name().and_then(|e| e.to_str()).ok_or_else(|| anyhow::anyhow!("Malformed file name: {}", path.display()))?;
+    let (id, lang, ty) = parse_filename(filename)?;
     log::info!("Processing {}", filename);
+    let pre = renderer.render(path, ty)?;
+
     let publish_time = pre
         .metadata
         .force_publish_time
@@ -88,7 +127,6 @@ fn serialize_single(
 
     let title_outline: TitleResp = crate::font::parse_title(&pre.metadata.title, title_font)?;
     let img = find_image(&pre.html);
-    let (id, lang) = parse_filename(filename)?;
 
     Ok(Post {
         html: pre.html,
@@ -110,28 +148,54 @@ fn serialize_single(
 }
 
 struct LatestFile {
-    content: ParsedMarkdown,
+    path: PathBuf,
     created: Option<DT>,
     updated: Option<DT>,
 }
 
 impl LatestFile {
-    fn new(content: ParsedMarkdown) -> Self {
+    fn new(path: PathBuf) -> Self {
         Self {
-            content,
+            path,
             created: None,
             updated: None,
         }
     }
 
-    fn serialize(self, filename: &str, title_font: &ttf_parser::Face) -> anyhow::Result<Post> {
+    fn serialize(self, renderer: &Renderer, title_font: &ttf_parser::Face) -> anyhow::Result<Post> {
         serialize_single(
-            filename,
-            self.content,
+            renderer,
+            self.path.as_ref(),
             self.created,
             self.updated,
             title_font,
         )
+    }
+}
+
+pub struct Renderer {
+    typst: typst::HtmlBackend,
+}
+
+impl Renderer {
+    pub fn new(root: PathBuf) -> anyhow::Result<Self> {
+        Ok(Self {
+            typst: typst::HtmlBackend::new(root)?,
+        })
+    }
+
+    fn reset(&mut self) {
+        self.typst.reset();
+    }
+
+    fn render(&self, path: &Path, ty: FileType) -> anyhow::Result<Rendered> {
+        match ty {
+            FileType::Markdown => {
+                let file = std::fs::read_to_string(path)?;
+                md::render(&file)
+            }
+            FileType::Typst => self.typst.invoke(path)?.render()
+        }
     }
 }
 
@@ -211,11 +275,15 @@ impl Revlike {
         };
 
         let msg = commit.message();
-        if msg.is_none() {
-            log::warn!("Unparsable commit message at {}", commit.id());
-        } else if msg.unwrap().contains("[skip time]") {
-            log::debug!("Skipping due to [skip time]");
-            return None;
+        match msg {
+            Err(e) => {
+                log::warn!("Unparsable commit message at {}: {}", commit.id(), e);
+            },
+            Ok(m) if m.contains("[skip time]") => {
+                log::debug!("Skipping due to [skip time]");
+                return None;
+            }
+            _ => {},
         }
 
         let time = commit.author().when();
@@ -245,7 +313,7 @@ impl ReaddirContext {
 
 fn revwalk_update_store(
     dir: impl AsRef<Path>,
-    parsed: HashMap<String, ParsedMarkdown>,
+    paths: impl Iterator<Item = PathBuf>,
 ) -> anyhow::Result<HashMap<String, LatestFile>> {
     let dir = &dir;
 
@@ -256,11 +324,14 @@ fn revwalk_update_store(
     revwalk.reset()?;
     revwalk.push_head()?;
 
-    let parsed = parsed
-        .into_iter()
-        .map(|(k, v)| (k, LatestFile::new(v)))
-        .collect();
-    let mut ctx = ReaddirContext::new(parsed);
+    let mut files = HashMap::with_capacity(paths.size_hint().0);
+    for path in paths {
+        files.insert(
+            path.file_name().and_then(|e| e.to_str()).ok_or_else(|| anyhow::anyhow!("Invalid file name"))?.to_owned(),
+            LatestFile::new(path)
+        );
+    }
+    let mut ctx = ReaddirContext::new(files);
 
     let mut repodir = std::fs::canonicalize(repo.path())?;
     repodir.pop();
@@ -374,29 +445,25 @@ fn revwalk_update_store(
 }
 
 pub fn readdir<P: AsRef<Path>>(
+    renderer: &Renderer,
     dir: P,
     title_font: &ttf_parser::Face,
 ) -> anyhow::Result<HashMap<String, Post>> {
     let entries = std::fs::read_dir(&dir)?;
-    let mut parsed: HashMap<String, ParsedMarkdown> = HashMap::new();
+    let mut files = Vec::new();
 
     for entry in entries {
-        let entry = entry?;
-        let file = std::fs::read_to_string(entry.path())?;
-        log::info!("Parsing {}", entry.file_name().to_string_lossy());
-        parsed.insert(
-            String::from_utf8(entry.file_name().as_bytes().to_vec())?.to_string(),
-            md::parse(&file)?,
-        );
+        // TODO: filter by file name
+        files.push(entry?.path());
     }
 
-    let timed = revwalk_update_store(&dir, parsed)?;
+    let timed = revwalk_update_store(&dir, files.into_iter())?;
 
     let collected = timed
         .into_par_iter()
         .filter_map(
             |(filename, latest_file)| -> Option<(String, Post)> {
-                let Ok(serialized) = latest_file.serialize(&filename, title_font) else {
+                let Ok(serialized) = latest_file.serialize(renderer, title_font) else {
                     log::warn!("Failed to serialize {}, skipping", filename);
                     return None;
                 };
@@ -407,60 +474,26 @@ pub fn readdir<P: AsRef<Path>>(
     Ok(collected)
 }
 
-pub fn refresh_paths<P: AsRef<Path>, I: Iterator<Item = P>>(
+pub fn refresh_paths(
+    renderer: &mut Renderer,
     dir: impl AsRef<Path>,
-    paths: I,
+    paths: impl Iterator<Item = PathBuf>,
     title_font: &ttf_parser::Face,
 ) -> anyhow::Result<HashMap<String, Option<Post>>> {
-    let mut parsed: HashMap<String, ParsedMarkdown> = HashMap::new();
-    let mut skipped = Vec::new();
+    let timed = revwalk_update_store(&dir, paths)?;
 
-    for path in paths {
-        let file = match std::fs::read_to_string(&path)
-            .map_err(Into::into)
-            .and_then(|content| md::parse(&content))
-        {
-            Ok(parsed) => parsed,
-            Err(e) => {
-                log::info!("Unable to read file: {}", e);
-                let filename = path
-                    .as_ref()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned();
-                skipped.push(filename);
-                continue;
-            }
-        };
+    // Reset renderer
+    renderer.reset();
 
-        parsed.insert(
-            path.as_ref()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_owned(),
-            file,
-        );
-    }
-
-    let timed = revwalk_update_store(&dir, parsed)?;
-
-    let mut collected: HashMap<_, _> = timed
+    let collected: HashMap<_, _> = timed
         .into_par_iter()
         .map(|(filename, latest_file)| {
-            let Ok(serialized) = latest_file.serialize(&filename, title_font) else {
+            let Ok(serialized) = latest_file.serialize(&renderer, title_font) else {
                 log::warn!("Failed to serialize {}, skipping", filename);
                 return (filename, None)
             };
             (filename, Some(serialized))
         })
         .collect();
-
-    for s in skipped {
-        collected.insert(s, None);
-    }
     Ok(collected)
 }
