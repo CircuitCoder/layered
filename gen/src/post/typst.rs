@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::{ops::ControlFlow, path::{Path, PathBuf}};
 
 use serde::Deserialize;
 use typst::{Features, Library, LibraryExt, World, comemo::Track, diag::{FileResult, SourceResult, Warned}, foundations::{Bytes, Content, Datetime, Duration, Label, Output}, introspection::{Introspector, MetadataElem}, model::{Document, LateLinkResolver}, syntax::{FileId, RootedPath, Source, VirtualPath, VirtualRoot::{self, Project}}, text::{Font, FontBook}, utils::{LazyHash, PicoStr}};
@@ -117,57 +117,45 @@ struct HtmlPlainDocument {
     plain: String,
 }
 
-fn extract_plain_text(content: &Content, out: &mut String) {
-    use typst::model::*;
-    use typst::text::*;
-    use typst::foundations::*;
-
-    // 1. Direct text node
-    if let Some(text_elem) = content.to_packed::<TextElem>() {
-        out.push_str(text_elem.text.as_str());
-        return;
+fn ensure_newlines(out: &mut typst::ecow::EcoString, count: usize) {
+    while out.ends_with(' ') || out.ends_with('\t') {
+        out.pop();
     }
 
-    // 2. Whitespace & line break nodes
-    let func = content.func();
-    if func == SpaceElem::ELEM {
-        out.push(' ');
-        return;
-    } else if func == ParbreakElem::ELEM {
+    let present = out.chars().rev().take_while(|c| *c == '\n').count();
+    for _ in present..count {
         out.push('\n');
-        return;
-    } else if func == LinebreakElem::ELEM {
-        out.push('\n');
-        return;
     }
+}
 
-    // 3. Dynamically check for standard structural fields (Typstonomicon logic)
-    if let Ok(children) = content.field_by_name("children") {
-        if let Ok(array) = children.cast::<Array>() {
-            for val in array {
-                if let Ok(child) = val.cast::<Content>() {
-                    extract_plain_text(&child, out);
-                }
-            }
-        }
-    } else if let Ok(body) = content.field_by_name("body") {
-        if let Ok(body_content) = body.cast::<Content>() {
-            extract_plain_text(&body_content, out);
-        }
-    } else if let Ok(text_val) = content.field_by_name("text") {
-        // Some elements (like raw code blocks) store text in a 'text' field
-        if let Ok(s) = text_val.clone().cast::<Str>() {
-            out.push_str(s.as_str());
-        } else if let Ok(c) = text_val.cast::<Content>() {
-            extract_plain_text(&c, out);
-        }
-    }
+fn extract_plain_text(content: &Content) -> String {
+    use typst::{
+        foundations::PlainText,
+        model::{EnumItem, HeadingElem, ListItem},
+        text::LinebreakElem,
+    };
 
-    // 4. (Optional) Inject structural newlines for block elements that
-    // don't natively emit ParbreakElem (like Headings)
-    if func == HeadingElem::ELEM {
-        out.push_str("\n\n");
-    }
+    let mut out = typst::ecow::EcoString::new();
+    let _ = content.traverse(&mut |element| -> ControlFlow<()> {
+        if element.is::<HeadingElem>() {
+            ensure_newlines(&mut out, 2);
+        } else if element.is::<ListItem>() || element.is::<EnumItem>() {
+            ensure_newlines(&mut out, 1);
+            out.push_str("- ");
+        } else if element.is::<typst::model::ParbreakElem>()
+            || element.is::<LinebreakElem>()
+        {
+            ensure_newlines(&mut out, 1);
+        }
+
+        if let Some(textable) = element.with::<dyn PlainText>() {
+            textable.plain_text(&mut out);
+        }
+
+        ControlFlow::Continue(())
+    });
+
+    out.trim().to_owned()
 }
 
 impl Output for HtmlPlainDocument {
@@ -182,8 +170,7 @@ impl Output for HtmlPlainDocument {
         styles: typst::foundations::StyleChain,
     ) -> SourceResult<Self>
     where Self: Sized {
-        let mut plain = String::new();
-        extract_plain_text(content, &mut plain);
+        let plain = extract_plain_text(content);
         HtmlDocument::create(engine, content, styles).map(|html| Self { html, plain })
     }
 
