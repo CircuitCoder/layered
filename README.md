@@ -12,7 +12,7 @@
 - [ ] Accessibility
   - [ ] aria tags
   - [ ] reduced motion
-- [ ] Typst
+- [x] Typst
 
 ## License
 
